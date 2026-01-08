@@ -4,7 +4,7 @@ import bcrypt
 import jwt
 from config.config import credentials
 from db.connection import get_session
-from db.entities import Administrator, Client
+from db.entities import User
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
@@ -30,8 +30,8 @@ def create_access_token(
     """
     data_copy = data.copy()
     # definindo tempo de exp com tempo atual + timedelta em minutos
-    exp = datetime.datetime.utcnow() + expire_in_timedelta | datetime.timedelta(
-        minutes=ACCESS_TOKEN_EXPIRE_TIME
+    exp = datetime.datetime.utcnow() + (
+        expire_in_timedelta or datetime.timedelta(minutes=ACCESS_TOKEN_EXPIRE_TIME)
     )
     data_copy.update({"exp": exp})
     return jwt.encode(payload=data_copy, key=SECRET_KEY, algorithm=ALGORITHM)
@@ -47,7 +47,7 @@ def get_current_user(
         token (str, optional): instância de OAuth2PasswordBearer que extrai o token do cabeçalho Authorization. Defaults to Depends(oauth2_schema).
 
     Returns:
-        user (Client|Administrator): retorna o usuario atual pelo token.
+        user (User): retorna o usuario atual pelo token.
     """
     exception_unauthorized = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -57,13 +57,9 @@ def get_current_user(
     try:
         payload: dict = jwt.decode(token, key=SECRET_KEY, algorithms=ALGORITHM)
         username: str = payload.get("sub")
-        admin: str = payload.get("admin")
     except jwt.DecodeError:
         raise exception_unauthorized
-    if admin:
-        user = session.query(Administrator).filter(Administrator.username == username)
-    else:
-        user = session.query(Client).filter(Client.username == username)
+    user = session.query(User).filter(User.username == username)
     if not user:
         raise exception_unauthorized
     return user

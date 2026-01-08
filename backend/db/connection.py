@@ -27,11 +27,12 @@ class ConnectionDB:
 
 
 def get_session():
-    connection: ConnectionDB = None
+    engine = create_engine(credentials.get("url"), echo=False)
+    session = sessionmaker(bind=engine)()
     try:
-        connection = ConnectionDB()
-        yield connection.session
+        yield session
     except Exception as e:
-        print(e)
-        if connection:
-            connection.session.close()
+        print(f"Error getting DB session: {e}")
+        session.rollback()
+    finally:
+        session.close()

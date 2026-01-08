@@ -2,6 +2,7 @@ import uvicorn
 from config.config import credentials
 from fastapi import FastAPI, status
 from routes.auth import router as auth_router
+from routes.users import router as users_router
 
 app = FastAPI(
     title="Back-end Padaria da Vila!",
@@ -9,6 +10,7 @@ app = FastAPI(
     version="0.0.1",
 )
 app.include_router(auth_router)
+app.include_router(users_router)
 
 
 @app.get("/health", status_code=status.HTTP_200_OK, tags=["health"])

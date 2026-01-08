@@ -14,8 +14,8 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 
 
-class Client(Base):
-    __tablename__ = "clientes"
+class User(Base):
+    __tablename__ = "usuarios"
 
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     name = Column(String, nullable=False)
@@ -23,37 +23,20 @@ class Client(Base):
     password = Column(String, nullable=False)
     telephone = Column(String, nullable=True)
     token = Column(String, nullable=True)
+    is_admin = Column(Boolean, nullable=False, default=0)
     created_at = Column(TIMESTAMP, nullable=False, server_default=func.now())
-    sale = relationship("Sale", back_populates="sale", cascade="all, delete-orphan")
+    sale = relationship("Sale", back_populates="user", cascade="all, delete-orphan")
     shopping_cart = relationship(
-        "ShoppingCart", back_populates="shopping_cart", cascade="all, delete-orphan"
+        "ShoppingCart", back_populates="user", cascade="all, delete-orphan"
     )
 
-    def __init__(self, name, username, password, telephone, token=None):
+    def __init__(self, name, username, password, telephone, token=None, is_admin=False):
         self.name = name
         self.username = username
         self.password = password
         self.telephone = telephone
         self.token = token
-
-
-class Administrator(Base):
-    __tablename__ = "administradores"
-
-    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    name = Column(String, nullable=False)
-    username = Column(String, nullable=False)
-    password = Column(String, nullable=False)
-    telephone = Column(String, nullable=True)
-    token = Column(String, nullable=True)
-    created_at = Column(TIMESTAMP, nullable=False, server_default=func.now())
-
-    def __init__(self, name, username, password, telephone, token=None):
-        self.name = name
-        self.username = username
-        self.password = password
-        self.telephone = telephone
-        self.token = token
+        self.is_admin = is_admin
 
 
 class Product(Base):
@@ -67,9 +50,9 @@ class Product(Base):
     validity = Column(TIMESTAMP, nullable=False, server_default=func.now())
     image = Column(LargeBinary, nullable=True)
     created_at = Column(TIMESTAMP, nullable=False, server_default=func.now())
-    sale = relationship("Sale", back_populates="sale", cascade="all, delete-orphan")
+    sale = relationship("Sale", back_populates="product", cascade="all, delete-orphan")
     shopping_cart = relationship(
-        "ShoppingCart", back_populates="shopping_cart", cascade="all, delete-orphan"
+        "ShoppingCart", back_populates="product", cascade="all, delete-orphan"
     )
 
     def __init__(self, name, price, stock, category, validity, image=None):
@@ -85,17 +68,17 @@ class Sale(Base):
     __tablename__ = "vendas"
 
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    client_id = Column(ForeignKey("clientes.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(ForeignKey("usuarios.id", ondelete="CASCADE"), nullable=False)
     product_id = Column(ForeignKey("produtos.id", ondelete="CASCADE"), nullable=False)
     count = Column(Integer, nullable=False)
     value = Column(Float, nullable=False)
     was_paid = Column(Boolean, nullable=False, default=0)
     created_at = Column(TIMESTAMP, nullable=False, server_default=func.now())
-    client = relationship("Client", back_populates="client")
-    product = relationship("Product", back_populates="product")
+    user = relationship("User", back_populates="sale")
+    product = relationship("Product", back_populates="sale")
 
-    def __init__(self, client_id, product_id, count, value, was_paid=False):
-        self.client_id = client_id
+    def __init__(self, user_id, product_id, count, value, was_paid=False):
+        self.user_id = user_id
         self.product_id = product_id
         self.count = count
         self.value = value
@@ -106,17 +89,17 @@ class ShoppingCart(Base):
     __tablename__ = "carrinhos"
 
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    client_id = Column(ForeignKey("clientes.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(ForeignKey("usuarios.id", ondelete="CASCADE"), nullable=False)
     product_id = Column(ForeignKey("produtos.id", ondelete="CASCADE"), nullable=False)
     count = Column(Integer, nullable=False)
     value = Column(Float, nullable=False)
     was_purchased = Column(Boolean, nullable=False, default=0)
     created_at = Column(TIMESTAMP, nullable=False, server_default=func.now())
-    client = relationship("Client", back_populates="client")
-    product = relationship("Product", back_populates="product")
+    user = relationship("User", back_populates="shopping_cart")
+    product = relationship("Product", back_populates="shopping_cart")
 
-    def __init__(self, client_id, product_id, count, value, was_purchased=False):
-        self.client_id = client_id
+    def __init__(self, user_id, product_id, count, value, was_purchased=False):
+        self.user_id = user_id
         self.product_id = product_id
         self.count = count
         self.value = value
