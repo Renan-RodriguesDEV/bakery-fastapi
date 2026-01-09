@@ -19,9 +19,9 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     name = Column(String, nullable=False)
-    username = Column(String, nullable=False)
+    username = Column(String, unique=True, nullable=False)
     password = Column(String, nullable=False)
-    telephone = Column(String, nullable=True)
+    telephone = Column(String, unique=True, nullable=True)
     token = Column(String, nullable=True)
     is_admin = Column(Boolean, nullable=False, default=0)
     created_at = Column(TIMESTAMP, nullable=False, server_default=func.now())
@@ -43,7 +43,7 @@ class Product(Base):
     __tablename__ = "produtos"
 
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    name = Column(String, nullable=False)
+    name = Column(String, unique=True, nullable=False)
     price = Column(Float, nullable=False, default=0.0)
     stock = Column(Integer, nullable=False, default=0)
     category = Column(String, nullable=False)
@@ -61,7 +61,7 @@ class Product(Base):
         self.stock = stock
         self.category = category
         self.validity = validity
-        self.validity = image
+        self.image = image
 
 
 class Sale(Base):

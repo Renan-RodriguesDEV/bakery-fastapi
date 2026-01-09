@@ -1,11 +1,7 @@
+import datetime
 from typing import Optional
 
 from pydantic import BaseModel
-
-
-class TokenSchema(BaseModel):
-    access_token: str
-    token_type: str
 
 
 class UserSchema(BaseModel):
@@ -14,21 +10,21 @@ class UserSchema(BaseModel):
     username: str
     password: str
     telephone: str | None = None
+    token: str
+    is_admin: bool
+    created_at: datetime.datetime
 
 
-class UserPublicSchema(BaseModel):
+class UserCreateSchema(BaseModel):
     name: str
     username: str
     password: str
     telephone: str | None = None
+    is_admin: bool = False
 
 
 class UserListSchema(BaseModel):
     users: list[UserSchema]
-
-
-class UserCreateSchema(UserPublicSchema):
-    is_admin: bool = False
 
 
 class UserUpdateSchema(BaseModel):
@@ -36,6 +32,7 @@ class UserUpdateSchema(BaseModel):
     username: str
     password: str
     telephone: Optional[str] = None
+    token: Optional[str] = None
 
 
 class UserUpdatePartialSchema(BaseModel):
@@ -43,3 +40,4 @@ class UserUpdatePartialSchema(BaseModel):
     username: Optional[str] = None
     password: Optional[str] = None
     telephone: Optional[str] = None
+    token: Optional[str] = None

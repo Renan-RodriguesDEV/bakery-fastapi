@@ -3,7 +3,7 @@ from db.connection import get_session
 from db.entities import User
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from schemas.schemas import TokenSchema
+from schemas.token import TokenSchema
 from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/auth", tags=["auth"])

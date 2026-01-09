@@ -4,10 +4,11 @@ from db.entities import User
 from exceptions.handle_exceptions import (
     exception_access_dained,
     exception_access_dained_for_user,
+    exception_missing_content,
     exception_user_not_found,
 )
 from fastapi import APIRouter, Depends, status
-from schemas.schemas import (
+from schemas.user import (
     UserCreateSchema,
     UserListSchema,
     UserSchema,
@@ -45,13 +46,7 @@ def get_all(
 )
 def create(user: UserCreateSchema, session: Session = Depends(get_session)):
     user.password = hashpasswd(user.password)
-    user_db = User(
-        user.name,
-        user.username,
-        user.password,
-        user.telephone,
-        is_admin=user.is_admin,
-    )
+    user_db = User(**user.model_dump())
     session.add(user_db)
     session.commit()
     return user
@@ -66,10 +61,13 @@ def update(
 ):
     if id != current_user.id and not current_user.is_admin:
         raise exception_access_dained_for_user
-    current_user.name = user.name
-    current_user.username = user.username
-    current_user.password = hashpasswd(user.password)
-    current_user.telephone = user.telephone
+    user.password = hashpasswd(user.password)
+    # converte o "user" schema em dicionaria para iterar sobre chaves e valores
+    user_data = user.model_dump()
+    for key, value in user_data.items():
+        if not value:
+            raise exception_missing_content
+        setattr(current_user, key, value)
     session.commit()
     session.refresh(current_user)
     return current_user
