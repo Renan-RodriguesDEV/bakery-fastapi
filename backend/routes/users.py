@@ -11,6 +11,7 @@ from schemas.schemas import (
     UserCreateSchema,
     UserListSchema,
     UserSchema,
+    UserUpdatePartialSchema,
     UserUpdateSchema,
 )
 from sqlalchemy.orm import Session
@@ -28,7 +29,7 @@ def get(
     return current_user
 
 
-@router.get("/all", status_code=status.HTTP_200_OK)
+@router.get("/all", response_model=UserListSchema, status_code=status.HTTP_200_OK)
 def get_all(
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
@@ -59,11 +60,11 @@ def create(user: UserCreateSchema, session: Session = Depends(get_session)):
 @router.put("/update/{id}", response_model=UserSchema, status_code=status.HTTP_200_OK)
 def update(
     id: int,
-    user: UserSchema,
+    user: UserUpdateSchema,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
-    if id != current_user.id:
+    if id != current_user.id and not current_user.is_admin:
         raise exception_access_dained_for_user
     current_user.name = user.name
     current_user.username = user.username
@@ -77,11 +78,11 @@ def update(
 @router.patch("/update/{id}", response_model=UserSchema, status_code=status.HTTP_200_OK)
 def update_partial(
     id: int,
-    user: UserUpdateSchema,
+    user: UserUpdatePartialSchema,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
-    if id != current_user.id:
+    if id != current_user.id and not current_user.is_admin:
         raise exception_access_dained_for_user
     # converte o "user" em um dicionario apenas com campos/valores não nulos
     user_data = user.model_dump(exclude_unset=True)
@@ -103,7 +104,7 @@ def delete(
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
-    if id != current_user.id:
+    if id != current_user.id and not current_user.is_admin:
         raise exception_access_dained_for_user
     session.delete(current_user)
     session.commit()

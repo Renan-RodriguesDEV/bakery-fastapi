@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 from pydantic import BaseModel
 
@@ -24,7 +24,7 @@ class UserPublicSchema(BaseModel):
 
 
 class UserListSchema(BaseModel):
-    users: List[UserSchema]
+    users: list[UserSchema]
 
 
 class UserCreateSchema(UserPublicSchema):
@@ -32,6 +32,13 @@ class UserCreateSchema(UserPublicSchema):
 
 
 class UserUpdateSchema(BaseModel):
+    name: str
+    username: str
+    password: str
+    telephone: Optional[str] = None
+
+
+class UserUpdatePartialSchema(BaseModel):
     name: Optional[str] = None
     username: Optional[str] = None
     password: Optional[str] = None
