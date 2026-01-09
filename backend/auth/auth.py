@@ -59,7 +59,7 @@ def get_current_user(
         username: str = payload.get("sub")
     except jwt.DecodeError:
         raise exception_unauthorized
-    user = session.query(User).filter(User.username == username)
+    user = session.query(User).filter(User.username == username).first()
     if not user:
         raise exception_unauthorized
     return user
