@@ -10,7 +10,6 @@ from exceptions.handle_exceptions import (
 from fastapi import APIRouter, Depends, status
 from schemas.user import (
     UserCreateSchema,
-    UserListSchema,
     UserSchema,
     UserUpdatePartialSchema,
     UserUpdateSchema,
@@ -30,7 +29,7 @@ def get(
     return current_user
 
 
-@router.get("/all", response_model=UserListSchema, status_code=status.HTTP_200_OK)
+@router.get("/all", response_model=list[UserSchema], status_code=status.HTTP_200_OK)
 def get_all(
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
@@ -38,7 +37,7 @@ def get_all(
     if not current_user.is_admin:
         raise exception_access_dained
     users = session.query(User).all()
-    return {"users": users}
+    return users
 
 
 @router.post(
@@ -46,7 +45,7 @@ def get_all(
 )
 def create(user: UserCreateSchema, session: Session = Depends(get_session)):
     user.password = hashpasswd(user.password)
-    user_db = User(**user.model_dump())
+    user_db = User(**user.model_dump(exclude_unset=True))
     session.add(user_db)
     session.commit()
     return user
@@ -64,13 +63,18 @@ def update(
     user.password = hashpasswd(user.password)
     # converte o "user" schema em dicionaria para iterar sobre chaves e valores
     user_data = user.model_dump()
+    updated_user = (
+        session.query(User).filter(User.id == id).first()
+        if current_user.id != id
+        else current_user
+    )
     for key, value in user_data.items():
         if not value:
             raise exception_missing_content
-        setattr(current_user, key, value)
+        setattr(updated_user, key, value)
     session.commit()
-    session.refresh(current_user)
-    return current_user
+    session.refresh(updated_user)
+    return updated_user
 
 
 @router.patch("/update/{id}", response_model=UserSchema, status_code=status.HTTP_200_OK)
@@ -82,6 +86,11 @@ def update_partial(
 ):
     if id != current_user.id and not current_user.is_admin:
         raise exception_access_dained_for_user
+    updated_user = (
+        session.query(User).filter(User.id == id).first()
+        if current_user.id != id
+        else current_user
+    )
     # converte o "user" em um dicionario apenas com campos/valores não nulos
     user_data = user.model_dump(exclude_unset=True)
     # itera sobre as chaves e valores do "user_data"
@@ -90,10 +99,10 @@ def update_partial(
         if key == "password":
             value = hashpasswd(value)
         # seta/altera o atributo "key" do "current_user" para o novo "value"
-        setattr(current_user, key, value)
+        setattr(updated_user, key, value)
     session.commit()
-    session.refresh(current_user)
-    return current_user
+    session.refresh(updated_user)
+    return updated_user
 
 
 @router.delete("/delete/{id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -104,7 +113,8 @@ def delete(
 ):
     if id != current_user.id and not current_user.is_admin:
         raise exception_access_dained_for_user
-    session.delete(current_user)
+    user = session.query(User).filter(User.id == id).first()
+    session.delete(user)
     session.commit()
     return {
         "status": status.HTTP_204_NO_CONTENT,

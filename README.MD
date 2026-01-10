@@ -11,11 +11,19 @@ Espaço para experimentar um front-end mobile-first em Next.js integrado a um ba
 
 ### Funcionalidades atuais
 
-- App FastAPI exposto em `backend/app.py` com rota `GET /health`.
-- Modelo de dados inicial em `backend/db/entities.py` (clientes, administradores, produtos, vendas e carrinhos) e conexão genérica em `backend/db/connection.py`.
-- Utilitários de autenticação em `backend/auth/auth.py` (hash de senha com bcrypt, geração/validação de JWT, dependência `get_current_user`).
-- Router base de autenticação em `backend/routes/auth.py` para receber credenciais via `OAuth2PasswordRequestForm`.
-- Sistema de configuração centralizado em `backend/config/config.py`, carregando variáveis de ambiente via `python-dotenv`.
+- **App FastAPI** exposto em `backend/app.py` com rota `GET /health` e rotas de negócio organizadas por módulos.
+- **Modelo de dados** completo em `backend/db/entities.py` (User, Product, Sale, Cart) com relacionamentos definidos via SQLAlchemy ORM.
+- **Autenticação OAuth2/JWT**: Sistema completo em `backend/auth/auth.py` com hash bcrypt, geração/validação de tokens e dependência `get_current_user` para proteção de rotas.
+- **Schemas Pydantic v2**: Todos os schemas configurados com `ConfigDict(from_attributes=True)` para conversão automática de objetos ORM, validação de entrada e serialização de resposta.
+- **API REST completa** com as seguintes rotas implementadas:
+  - **Auth** (`/auth`): Login via OAuth2, geração de tokens JWT
+  - **Users** (`/users`): CRUD completo com controle de acesso admin, endpoints `/all`, `/me`, `/create`, `/{id}`, PATCH e DELETE
+  - **Products** (`/products`): Gestão de produtos com filtros por categoria, controle de estoque e imagens
+  - **Sales** (`/sales`): Registro de vendas com filtros por usuário/produto, controle de pagamento, histórico completo
+  - **Cart** (`/cart`): Gerenciamento de carrinho de compras
+- **Controle de acesso**: Diferenciação entre usuários comuns e administradores, validação de propriedade de recursos.
+- **Tratamento de exceções** centralizado em `backend/exceptions/handle_exceptions.py` com respostas HTTP adequadas.
+- **Configuração centralizada** em `backend/config/config.py`, carregando variáveis de ambiente via `python-dotenv`.
 
 ### Como executar o back-end localmente
 
@@ -26,7 +34,7 @@ Espaço para experimentar um front-end mobile-first em Next.js integrado a um ba
    ```
 2. Instale as dependências principais (ajuste conforme necessário):
    ```bash
-   pip install fastapi uvicorn[standard] sqlalchemy python-dotenv bcrypt pyjwt
+   pip install fastapi uvicorn[standard] sqlalchemy python-dotenv bcrypt pyjwt python-multipart
    ```
 3. Configure um arquivo `.env` na pasta `backend/` com, por exemplo:
    ```ini
@@ -41,14 +49,19 @@ Espaço para experimentar um front-end mobile-first em Next.js integrado a um ba
    uvicorn app:app --reload
    ```
 5. Acesse `http://localhost:8000/health` para validar o serviço.
+6. Acesse `http://localhost:8000/docs` para visualizar a documentação interativa Swagger com todos os endpoints disponíveis.
 
 ### Próximos passos
 
-- Implementar as rotas completas de autenticação (`/auth/token`, refresh, cadastro de clientes e admins).
-- Adicionar Alembic para migrações versionadas e scripts de seed.
-- Criar módulos de domínio (produtos, carrinho, vendas) com serviços e validações.
+- Adicionar Alembic para migrações versionadas e scripts de seed do banco de dados.
+- Implementar refresh tokens e expiração avançada de sessões.
+- Adicionar validações de negócio mais robustas (verificação de estoque antes de venda, cálculo automático de totais).
+- Implementar upload e otimização de imagens de produtos.
 - Construir o frontend Next.js com foco em UX mobile, consumo via hooks (SWR/React Query) e tema consistente com a marca.
-- Automatizar testes (unitários e e2e) e configurar CI/CD.
+- Adicionar documentação Swagger/OpenAPI detalhada para cada endpoint.
+- Implementar testes automatizados (unitários com pytest, integração e e2e).
+- Configurar CI/CD com GitHub Actions para deploy automático.
+- Adicionar logging estruturado e observabilidade (métricas, traces).
 
 ### Créditos e referências
 

@@ -28,6 +28,6 @@ class CartUpdateSchema(BaseModel):
 
 
 class CartUpdatePartialSchema(BaseModel):
-    count: Optional[int]
-    value: Optional[float]
-    was_purchased: Optional[bool]
+    count: Optional[int] = None
+    value: Optional[float] = None
+    was_purchased: Optional[bool] = None

@@ -20,7 +20,9 @@ from sqlalchemy.orm import Session
 router = APIRouter(prefix="/products", tags=["products"])
 
 
-@router.get("/all", status_code=status.HTTP_200_OK)
+@router.get(
+    "/all", response_model=list[ProductPublicSchema], status_code=status.HTTP_200_OK
+)
 def get_all(
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
@@ -121,9 +123,10 @@ def delete(
     if not product:
         raise exception_product_not_found
     session.delete(product)
+    session.commit()
     return {
         "status": status.HTTP_204_NO_CONTENT,
-        "message": "successfully in deleted product",
+        "message": "sucesso ao deletar produto",
     }
 
 

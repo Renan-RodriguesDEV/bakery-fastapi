@@ -1,10 +1,11 @@
 import datetime
 from typing import Literal, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class ProductPublicSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     id: int
     name: str
     price: float
@@ -46,9 +47,9 @@ class ProductUpdateSchema(BaseModel):
 
 
 class ProductUpdatePartialSchema(BaseModel):
-    name: Optional[str]
-    price: Optional[float]
-    stock: Optional[int]
+    name: Optional[str] = None
+    price: Optional[float] = None
+    stock: Optional[int] = None
     category: Optional[
         Literal[
             "Pães",
@@ -59,5 +60,5 @@ class ProductUpdatePartialSchema(BaseModel):
             "Itens de conveniência básica",
             "Produtos embalados essenciais",
         ]
-    ]
-    validity: Optional[datetime.datetime]
+    ] = None
+    validity: Optional[datetime.datetime] = None
