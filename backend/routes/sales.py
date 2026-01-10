@@ -60,6 +60,8 @@ def create(
 ):
     if not current_user.is_admin and sale.user_id != current_user.id:
         raise exception_access_dained_for_user
+    
+    # TODO implementar verificação de estoque 0 e "value" de "sale" deve ser igual a product.price * sale.count e não passado pelo usuário
     sale_db = Sale(**sale.model_dump())
     product = session.query(Product).filter(Product.id == sale_db.product_id).first()
     product.stock -= sale.count
@@ -82,6 +84,7 @@ def update(
     sale_db = session.query(Sale).filter(Sale.id == id).first()
     product = session.query(Product).filter(Product.id == sale_db.product_id).first()
     product.stock -= sale.count
+    # TODO implementar verificação de estoque 0 e "value" de "sale" deve ser igual a product.price * sale.count e não passado pelo usuário
     if not current_user.is_admin and sale_db.user_id != current_user.id:
         raise exception_access_dained_for_user
     for key, value in sale_data.items():
