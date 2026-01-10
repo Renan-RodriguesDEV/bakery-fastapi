@@ -2,7 +2,7 @@ from typing import Optional
 
 from auth.auth import get_current_user
 from db.connection import get_session
-from db.entities import Sale, User
+from db.entities import Product, Sale, User
 from exceptions.handle_exceptions import (
     exception_access_dained_for_user,
     exception_missing_content,
@@ -61,6 +61,8 @@ def create(
     if not current_user.is_admin and sale.user_id != current_user.id:
         raise exception_access_dained_for_user
     sale_db = Sale(**sale.model_dump())
+    product = session.query(Product).filter(Product.id == sale_db.product_id).first()
+    product.stock -= sale.count
     session.add(sale_db)
     session.commit()
     session.refresh(sale_db)
@@ -78,6 +80,8 @@ def update(
 ):
     sale_data = sale.model_dump()
     sale_db = session.query(Sale).filter(Sale.id == id).first()
+    product = session.query(Product).filter(Product.id == sale_db.product_id).first()
+    product.stock -= sale.count
     if not current_user.is_admin and sale_db.user_id != current_user.id:
         raise exception_access_dained_for_user
     for key, value in sale_data.items():
@@ -103,6 +107,11 @@ def update_partial(
     if not current_user.is_admin and sale_db.user_id != current_user.id:
         raise exception_access_dained_for_user
     for key, value in sale_data.items():
+        if key == "count":
+            product = (
+                session.query(Product).filter(Product.id == sale_db.product_id).first()
+            )
+            product.stock -= value
         setattr(sale_db, key, value)
     session.commit()
     session.refresh(sale_db)
