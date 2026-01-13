@@ -15,6 +15,7 @@ O projeto oferece uma solução completa de e-commerce com:
 - ✅ **Envio de emails** para recuperação de senha
 - ✅ **Migrações automáticas** com Alembic para versionamento de schema
 - ✅ **Interface moderna** com Tailwind CSS e suporte a modo dark
+- ✅ **WebSocket** para notificações em tempo real e chat
 - ✅ **Documentação completa** com 6+ guias detalhados
 
 ## 🚀 Quick Start
@@ -59,6 +60,7 @@ Acesse `http://localhost:3000` para começar!
 | API REST           | ✅     | 25+ endpoints documentados            |
 | Banco de Dados     | ✅     | SQLAlchemy ORM + Alembic              |
 | Envio de Emails    | ✅     | SMTP com templates HTML               |
+| WebSocket          | ✅     | Notificações e chat em tempo real     |
 | Interface          | ✅     | Responsiva com Tailwind CSS           |
 
 ### 🟡 Estrutura Pronta (Faltam Integrações)

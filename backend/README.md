@@ -13,6 +13,7 @@ API completa para gerenciar a padaria com:
 - ✅ Migrações automáticas com Alembic
 - ✅ Envio de emails SMTP
 - ✅ Documentação interativa Swagger/ReDoc
+- ✅ WebSocket para notificações em tempo real e chat
 
 ## 🚀 Quick Start
 
@@ -76,7 +77,8 @@ backend/
 │   ├── users.py              # Endpoints /users
 │   ├── products.py           # Endpoints /products
 │   ├── cart.py               # Endpoints /cart
-│   └── sales.py              # Endpoints /sales
+│   ├── sales.py              # Endpoints /sales
+│   └── websocket.py          # Endpoints /ws (WebSocket)
 │
 ├── schemas/
 │   ├── user.py               # Validação User
@@ -88,7 +90,8 @@ backend/
 ├── services/
 │   ├── email.py              # Envio SMTP
 │   ├── token.py              # Gerenciamento JWT
-│   └── sales.py              # Lógica vendas
+│   ├── sales.py              # Lógica vendas
+│   └── websocket.py          # Gerenciador de conexões WebSocket
 │
 ├── exceptions/
 │   └── handle_exceptions.py  # Tratamento erros
@@ -178,6 +181,17 @@ SMTP_FROM=seu-email@gmail.com
 | GET    | `/sales/all`    | Listar vendas | ✅   | Cliente/Admin |
 | POST   | `/sales/create` | Registrar     | ✅   | Cliente       |
 | PUT    | `/sales/{id}`   | Atualizar     | ✅   | Admin         |
+
+### WebSocket (`/ws`)
+
+| Endpoint                    | Descrição                      | Auth | Permissão |
+| --------------------------- | ------------------------------ | ---- | --------- |
+| `/ws/notifications/{id}`    | Notificações em tempo real     | ⚠️   | Próprio   |
+| `/ws/chat/{id}`             | Chat com broadcast             | ⚠️   | Qualquer  |
+
+⚠️ = Recomenda-se adicionar autenticação JWT via query parameter em produção.
+
+Ver [WEBSOCKET.md](WEBSOCKET.md) para documentação completa.
 
 ## 🔐 Autenticação
 
