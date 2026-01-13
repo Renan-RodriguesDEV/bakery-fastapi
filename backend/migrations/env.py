@@ -7,7 +7,7 @@ from sqlalchemy import engine_from_config, pool
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from db.base import Base
-from db.entities import Product, Sale, ShoppingCart, User  # noqa: F401
+from db.entities import Notification, Product, Sale, ShoppingCart, User  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

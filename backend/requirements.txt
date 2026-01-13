@@ -6,3 +6,4 @@ python-dotenv==1.2.1
 python_bcrypt==0.3.2
 SQLAlchemy==2.0.45
 uvicorn==0.40.0
+websockets==14.1

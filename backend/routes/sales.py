@@ -15,6 +15,7 @@ from schemas.sale import (
     SaleUpdatePartialSchema,
     SaleUpdateSchema,
 )
+from services.notifications import notify_low_stock, notify_payment_request
 from services.sales import calculate_stock, calculate_value
 from sqlalchemy.orm import Session
 
@@ -75,6 +76,21 @@ async def create(
     session.add(sale_db)
     session.commit()
     session.refresh(sale_db)
+    
+    # Notifica sobre estoque baixo se necessário
+    if product.stock <= 1:
+        await notify_low_stock(session, product.id, product.name, product.stock)
+    
+    # Envia notificação de pagamento para administradores
+    await notify_payment_request(
+        session=session,
+        user_id=current_user.id,
+        username=current_user.username,
+        sale_id=sale_db.id,
+        product_name=product.name,
+        value=sale_db.value,
+    )
+    
     return sale_db
 
 

@@ -16,6 +16,7 @@ from schemas.product import (
     ProductUpdatePartialSchema,
     ProductUpdateSchema,
 )
+from services.notifications import notify_low_stock
 from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/products", tags=["products"])
@@ -62,6 +63,11 @@ async def create(
     session.add(product_db)
     session.commit()
     session.refresh(product_db)
+    
+    # Notifica sobre estoque baixo se necessário
+    if product_db.stock <= 1:
+        await notify_low_stock(session, product_db.id, product_db.name, product_db.stock)
+    
     return product_db
 
 
@@ -109,6 +115,11 @@ async def update_partial(
         setattr(product_db, key, value)
     session.commit()
     session.refresh(product_db)
+    
+    # Notifica sobre estoque baixo se necessário
+    if product_db.stock <= 1:
+        await notify_low_stock(session, product_db.id, product_db.name, product_db.stock)
+    
     return product_db
 
 

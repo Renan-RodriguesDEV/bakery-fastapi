@@ -104,4 +104,25 @@ class ShoppingCart(Base):
         self.was_purchased = was_purchased
 
 
+class Notification(Base):
+    __tablename__ = "notificacoes"
+
+    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
+    user_id = Column(ForeignKey("usuarios.id", ondelete="CASCADE"), nullable=False)
+    type = Column(String, nullable=False)  # "stock" ou "payment"
+    title = Column(String, nullable=False)
+    message = Column(String, nullable=False)
+    is_read = Column(Boolean, nullable=False, default=False)
+    related_id = Column(Integer, nullable=True)  # ID do produto ou venda relacionada
+    created_at = Column(TIMESTAMP, nullable=False, server_default=func.now())
+
+    def __init__(self, user_id, type, title, message, related_id=None, is_read=False):
+        self.user_id = user_id
+        self.type = type
+        self.title = title
+        self.message = message
+        self.related_id = related_id
+        self.is_read = is_read
+
+
 Base.metadata.create_all(ConnectionDB().engine)
