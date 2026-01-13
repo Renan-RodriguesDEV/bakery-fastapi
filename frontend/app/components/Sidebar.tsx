@@ -4,17 +4,30 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useNotifications } from "@/hooks/useNotifications";
+import { NotificationBell } from "@/components/NotificationBell";
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
 
-  // Carregar preferência de tema ao montar
+  const {
+    notifications,
+    unreadCount,
+    isLoading,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification
+  } = useNotifications(user?.id || null, token);
+
+  // Carregar preferência de tema e token ao montar
   useEffect(() => {
     const isDark = document.documentElement.classList.contains("dark");
     setIsDarkMode(isDark);
+    setToken(localStorage.getItem('access_token'));
   }, []);
 
   const toggleDarkMode = () => {
@@ -142,6 +155,25 @@ export default function Sidebar() {
 
           {/* User Info & Actions */}
           <div className="space-y-3 border-t border-gray-200 dark:border-slate-700 pt-4">
+            {/* Notification Bell - Only for admins */}
+            {user?.is_admin && (
+              <div className="flex items-center justify-center">
+                <NotificationBell
+                  unreadCount={unreadCount}
+                  notifications={notifications}
+                  isLoading={isLoading}
+                  onMarkAsRead={markAsRead}
+                  onMarkAllAsRead={markAllAsRead}
+                  onDelete={deleteNotification}
+                />
+                {isOpen && (
+                  <span className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Notificações
+                  </span>
+                )}
+              </div>
+            )}
+
             {/* Theme Toggle */}
             <button
               onClick={toggleDarkMode}

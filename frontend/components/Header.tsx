@@ -1,10 +1,20 @@
 "use client";
 
 import { useAuth } from "@/hooks/useAuth";
+import { useNotifications } from "@/hooks/useNotifications";
+import { NotificationBell } from "./NotificationBell";
 import Link from "next/link";
 
 export function Header() {
   const { user, logout } = useAuth();
+  const { 
+    notifications, 
+    unreadCount, 
+    isLoading,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification 
+  } = useNotifications(user?.id || null, localStorage.getItem('access_token'));
 
   if (!user) return null;
 
@@ -69,6 +79,18 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-4">
+          {/* Notification Bell - Only for admins */}
+          {user.is_admin && (
+            <NotificationBell
+              unreadCount={unreadCount}
+              notifications={notifications}
+              isLoading={isLoading}
+              onMarkAsRead={markAsRead}
+              onMarkAllAsRead={markAllAsRead}
+              onDelete={deleteNotification}
+            />
+          )}
+
           <div className="flex items-center gap-2 bg-gray-100 dark:bg-slate-700 px-4 py-2 rounded-lg">
             <span className="text-sm text-gray-600 dark:text-gray-300">
               {user.username}
