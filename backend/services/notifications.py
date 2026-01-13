@@ -44,7 +44,7 @@ async def notify_low_stock(session: Session, product_id: int, product_name: str,
         return
     
     # Busca todos os administradores
-    admins = session.query(User).filter(User.is_admin == True).all()
+    admins = session.query(User).filter(User.is_admin).all()
     
     for admin in admins:
         notification_data = NotificationCreateSchema(
@@ -62,7 +62,7 @@ async def notify_payment_request(
 ):
     """Notifica administradores sobre solicitação de pagamento"""
     # Busca todos os administradores
-    admins = session.query(User).filter(User.is_admin == True).all()
+    admins = session.query(User).filter(User.is_admin).all()
     
     for admin in admins:
         notification_data = NotificationCreateSchema(

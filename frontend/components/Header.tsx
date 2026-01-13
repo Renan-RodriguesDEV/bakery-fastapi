@@ -4,9 +4,16 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNotifications } from "@/hooks/useNotifications";
 import { NotificationBell } from "./NotificationBell";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export function Header() {
-  const { user, logout } = useAuth();
+  const { user, logout, token } = useAuth();
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    setAccessToken(token);
+  }, [token]);
+
   const { 
     notifications, 
     unreadCount, 
@@ -14,7 +21,7 @@ export function Header() {
     markAsRead,
     markAllAsRead,
     deleteNotification 
-  } = useNotifications(user?.id || null, localStorage.getItem('access_token'));
+  } = useNotifications(user?.id || null, accessToken);
 
   if (!user) return null;
 

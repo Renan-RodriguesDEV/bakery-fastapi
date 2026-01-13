@@ -8,11 +8,10 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { NotificationBell } from "@/components/NotificationBell";
 
 export default function Sidebar() {
-  const { user, logout } = useAuth();
+  const { user, logout, token } = useAuth();
   const router = useRouter();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const [token, setToken] = useState<string | null>(null);
 
   const {
     notifications,
@@ -23,11 +22,10 @@ export default function Sidebar() {
     deleteNotification
   } = useNotifications(user?.id || null, token);
 
-  // Carregar preferência de tema e token ao montar
+  // Carregar preferência de tema ao montar
   useEffect(() => {
     const isDark = document.documentElement.classList.contains("dark");
     setIsDarkMode(isDark);
-    setToken(localStorage.getItem('access_token'));
   }, []);
 
   const toggleDarkMode = () => {

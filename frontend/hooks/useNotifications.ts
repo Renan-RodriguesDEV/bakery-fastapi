@@ -139,7 +139,17 @@ export function useNotifications(userId: number | null, token: string | null) {
 
   // WebSocket connection
   const connectWebSocket = useCallback(() => {
-    if (!userId || isConnectingRef.current || wsRef.current?.readyState === WebSocket.OPEN) {
+    if (!userId) {
+      return;
+    }
+
+    // Prevent multiple simultaneous connection attempts
+    if (isConnectingRef.current) {
+      return;
+    }
+
+    // Check if already connected
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
       return;
     }
 
