@@ -2,7 +2,7 @@
 Script de teste para WebSocket.
 Executa testes básicos de conexão e mensagens WebSocket.
 
-Requer: pip install websockets
+Requerido: pip install websockets
 """
 import asyncio
 import json

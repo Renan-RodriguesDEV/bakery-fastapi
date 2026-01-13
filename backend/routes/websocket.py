@@ -145,12 +145,16 @@ async def websocket_chat(
     except WebSocketDisconnect:
         manager.disconnect(websocket, user_id)
         # Notifica todos sobre desconexão
-        await manager.broadcast(
-            json.dumps(
-                {
-                    "type": "user_left",
-                    "user_id": user_id,
-                    "message": f"Usuário {user_id} saiu do chat",
-                }
+        try:
+            await manager.broadcast(
+                json.dumps(
+                    {
+                        "type": "user_left",
+                        "user_id": user_id,
+                        "message": f"Usuário {user_id} saiu do chat",
+                    }
+                )
             )
-        )
+        except Exception:
+            # Se broadcast falhar, não há problema - usuário já desconectou
+            pass
