@@ -40,8 +40,10 @@ class ConnectionManager:
         Envia uma mensagem para todas as conexões de um usuário específico.
         """
         if user_id in self.active_connections:
+            # Fazer cópia da lista para iterar com segurança
+            connections = list(self.active_connections[user_id])
             disconnected = []
-            for connection in self.active_connections[user_id]:
+            for connection in connections:
                 try:
                     await connection.send_text(message)
                 except Exception:
@@ -56,9 +58,12 @@ class ConnectionManager:
         """
         Envia uma mensagem para todos os usuários conectados.
         """
+        # Fazer cópia dos items para iterar com segurança
         for user_id, user_connections in list(self.active_connections.items()):
+            # Fazer cópia da lista de conexões para iterar com segurança
+            connections = list(user_connections)
             disconnected = []
-            for connection in user_connections:
+            for connection in connections:
                 try:
                     await connection.send_text(message)
                 except Exception:
@@ -75,8 +80,10 @@ class ConnectionManager:
         """
         for admin_id in admin_ids:
             if admin_id in self.active_connections:
+                # Fazer cópia da lista para iterar com segurança
+                connections = list(self.active_connections[admin_id])
                 disconnected = []
-                for connection in self.active_connections[admin_id]:
+                for connection in connections:
                     try:
                         await connection.send_text(message)
                     except Exception:
