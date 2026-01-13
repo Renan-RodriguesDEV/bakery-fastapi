@@ -64,11 +64,15 @@ async def websocket_notifications(
                     )
             except json.JSONDecodeError:
                 # Se não for JSON válido, envia mensagem de erro
-                await websocket.send_text(
-                    json.dumps(
-                        {"type": "error", "message": "Formato de mensagem inválido"}
+                try:
+                    await websocket.send_text(
+                        json.dumps(
+                            {"type": "error", "message": "Formato de mensagem inválido"}
+                        )
                     )
-                )
+                except Exception:
+                    # Conexão pode estar quebrada, interromper loop
+                    break
 
     except WebSocketDisconnect:
         manager.disconnect(websocket, user_id)
@@ -128,11 +132,15 @@ async def websocket_chat(
                     )
                 )
             except json.JSONDecodeError:
-                await websocket.send_text(
-                    json.dumps(
-                        {"type": "error", "message": "Formato de mensagem inválido"}
+                try:
+                    await websocket.send_text(
+                        json.dumps(
+                            {"type": "error", "message": "Formato de mensagem inválido"}
+                        )
                     )
-                )
+                except Exception:
+                    # Conexão pode estar quebrada, interromper loop
+                    break
 
     except WebSocketDisconnect:
         manager.disconnect(websocket, user_id)

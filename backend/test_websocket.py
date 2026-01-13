@@ -1,17 +1,19 @@
 """
 Script de teste para WebSocket.
 Executa testes básicos de conexão e mensagens WebSocket.
+
+Requer: pip install websockets
 """
 import asyncio
 import json
+import os
 
-try:
-    import websockets
-except ImportError:
-    print("⚠️  websockets não instalado. Instalando...")
-    import subprocess
-    subprocess.check_call(["pip", "install", "websockets"])
-    import websockets
+import websockets
+
+# Configuração do servidor via variável de ambiente
+WS_HOST = os.getenv("WS_HOST", "localhost")
+WS_PORT = os.getenv("WS_PORT", "8000")
+WS_BASE_URL = f"ws://{WS_HOST}:{WS_PORT}"
 
 
 async def test_notifications_endpoint():
@@ -19,7 +21,7 @@ async def test_notifications_endpoint():
     print("\n🧪 Testando endpoint /ws/notifications/{user_id}...")
     
     user_id = 1
-    uri = f"ws://localhost:8000/ws/notifications/{user_id}"
+    uri = f"{WS_BASE_URL}/ws/notifications/{user_id}"
     
     try:
         async with websockets.connect(uri) as websocket:
@@ -65,7 +67,7 @@ async def test_chat_endpoint():
     print("\n🧪 Testando endpoint /ws/chat/{user_id}...")
     
     user_id = 2
-    uri = f"ws://localhost:8000/ws/chat/{user_id}"
+    uri = f"{WS_BASE_URL}/ws/chat/{user_id}"
     
     try:
         async with websockets.connect(uri) as websocket:
@@ -107,8 +109,8 @@ async def test_multiple_connections():
     user1_id = 1
     user2_id = 2
     
-    uri1 = f"ws://localhost:8000/ws/notifications/{user1_id}"
-    uri2 = f"ws://localhost:8000/ws/notifications/{user2_id}"
+    uri1 = f"{WS_BASE_URL}/ws/notifications/{user1_id}"
+    uri2 = f"{WS_BASE_URL}/ws/notifications/{user2_id}"
     
     try:
         async with websockets.connect(uri1) as ws1, websockets.connect(uri2) as ws2:
@@ -142,7 +144,7 @@ async def main():
     print("=" * 60)
     print("🚀 Iniciando testes de WebSocket")
     print("=" * 60)
-    print("\n⚠️  Certifique-se de que o servidor está rodando em http://localhost:8000")
+    print(f"\n⚠️  Certifique-se de que o servidor está rodando em {WS_BASE_URL.replace('ws://', 'http://')}")
     print("   Execute: uvicorn app:app --reload")
     
     await asyncio.sleep(2)  # Aguarda um pouco antes de começar

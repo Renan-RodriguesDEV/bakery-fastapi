@@ -27,25 +27,47 @@ class ConnectionManager:
         Remove uma conexão WebSocket do gerenciador.
         """
         if user_id in self.active_connections:
-            self.active_connections[user_id].remove(websocket)
-            if not self.active_connections[user_id]:
-                del self.active_connections[user_id]
+            try:
+                self.active_connections[user_id].remove(websocket)
+                if not self.active_connections[user_id]:
+                    del self.active_connections[user_id]
+            except ValueError:
+                # Websocket já foi removido
+                pass
 
     async def send_personal_message(self, message: str, user_id: int):
         """
         Envia uma mensagem para todas as conexões de um usuário específico.
         """
         if user_id in self.active_connections:
+            disconnected = []
             for connection in self.active_connections[user_id]:
-                await connection.send_text(message)
+                try:
+                    await connection.send_text(message)
+                except Exception:
+                    # Marcar conexão para remoção se falhar
+                    disconnected.append(connection)
+            
+            # Remover conexões quebradas
+            for connection in disconnected:
+                self.disconnect(connection, user_id)
 
     async def broadcast(self, message: str):
         """
         Envia uma mensagem para todos os usuários conectados.
         """
-        for user_connections in self.active_connections.values():
+        for user_id, user_connections in list(self.active_connections.items()):
+            disconnected = []
             for connection in user_connections:
-                await connection.send_text(message)
+                try:
+                    await connection.send_text(message)
+                except Exception:
+                    # Marcar conexão para remoção se falhar
+                    disconnected.append(connection)
+            
+            # Remover conexões quebradas
+            for connection in disconnected:
+                self.disconnect(connection, user_id)
 
     async def broadcast_to_admins(self, message: str, admin_ids: List[int]):
         """
@@ -53,8 +75,17 @@ class ConnectionManager:
         """
         for admin_id in admin_ids:
             if admin_id in self.active_connections:
+                disconnected = []
                 for connection in self.active_connections[admin_id]:
-                    await connection.send_text(message)
+                    try:
+                        await connection.send_text(message)
+                    except Exception:
+                        # Marcar conexão para remoção se falhar
+                        disconnected.append(connection)
+                
+                # Remover conexões quebradas
+                for connection in disconnected:
+                    self.disconnect(connection, admin_id)
 
 
 # Instância global do gerenciador de conexões
