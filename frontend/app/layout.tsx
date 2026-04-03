@@ -24,8 +24,8 @@ export default function RootLayout({
   children: ReactNode;
 }>) {
   const pathname = usePathname();
-  const isLoginPage = pathname === "/login";
-  const isRegisterPage = pathname === "/register";
+  const hideNavigationRoutes = ["/login", "/register", "/forgot-password"];
+  const shouldHideNavigation = hideNavigationRoutes.includes(pathname);
 
   return (
     <html lang="pt-BR" className="dark" suppressHydrationWarning>
@@ -39,11 +39,11 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-950 transition-colors`}
       >
         <NotificationProvider>
-          {!isLoginPage && !isRegisterPage && <Header />}
-          {!isLoginPage && !isRegisterPage && <Sidebar />}
+          {!shouldHideNavigation && <Header />}
+          {!shouldHideNavigation && <Sidebar />}
           <main
             className={`min-h-screen transition-all duration-300 ${
-              !isLoginPage && !isRegisterPage ? "sm:ml-20" : ""
+              !shouldHideNavigation ? "sm:ml-20" : ""
             } pt-2 sm:pt-4 px-4 sm:px-6`}
           >
             {children}

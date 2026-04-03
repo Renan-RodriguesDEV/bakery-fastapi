@@ -1,9 +1,12 @@
 import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+from concurrent.futures import ThreadPoolExecutor
+from email.message import EmailMessage
 
 from config.config import credentials
 from logger import logger
+
+# executor para envios de e-mails assíncronos, evitando bloqueios na aplicação durante o processo de envio.
+executor = ThreadPoolExecutor(max_workers=5)
 
 
 class SenderMail:
@@ -19,6 +22,11 @@ class SenderMail:
         self.port = port
         self.password = password
 
+    def async_send(
+        self, to_addr: str, content: str, subject: str = "Padaria da vila informa!"
+    ):
+        return executor.submit(self.send, to_addr, content, subject)
+
     def send(
         self, to_addr: str, content: str, subject: str = "Padaria da vila informa!"
     ):
@@ -32,22 +40,21 @@ class SenderMail:
         Returns:
             bool: True se o email foi enviado corretamente e False caso contrario.
         """
-        message = MIMEMultipart()
+        message = EmailMessage()
         message["From"] = self.from_addr
         message["Subject"] = subject
         message["To"] = to_addr
 
-        message_text = MIMEText(content, "HTML")
+        message.set_content(content)
 
-        message.attach(message_text)
         return self.__send(to_addr, message)
 
-    def __send(self, to_addr: str, message: MIMEMultipart):
+    def __send(self, to_addr: str, message: EmailMessage):
         """Encapsula o envio atraves do smtplib.
 
         Args:
             to_addr (str): endereço para qual iremos enviar o email.
-            message (MIMEMultipart): email/mensagem do tipo MIMEMultipart.
+            message (EmailMessage): email/mensagem do tipo EmailMessage.
 
         Returns:
             bool: True se enviou e False caso contrario.

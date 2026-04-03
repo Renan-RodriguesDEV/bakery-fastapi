@@ -14,6 +14,7 @@ from schemas.user import (
     UserUpdatePartialSchema,
     UserUpdateSchema,
 )
+from services.email import SenderMail
 from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -44,10 +45,30 @@ async def get_all(
     "/create", response_model=UserCreateSchema, status_code=status.HTTP_201_CREATED
 )
 async def create(user: UserCreateSchema, session: Session = Depends(get_session)):
+    password_unhashed = user.password
     user.password = hashpasswd(user.password)
     user_db = User(**user.model_dump(exclude_unset=True))
     session.add(user_db)
     session.commit()
+    sender_mail = SenderMail()
+    content = f"""Olá, tudo bem?
+
+Seja bem-vindo(a) à Padaria da Vila!
+Seu cadastro foi realizado com sucesso e você já pode acessar nossa plataforma.
+
+Dados de acesso:
+
+Usuário (e-mail): {user.username}
+Senha: {password_unhashed}
+
+Por segurança, recomendamos que você altere sua senha no primeiro acesso.
+
+Se precisar de ajuda ou tiver qualquer dúvida, nossa equipe está à disposição.
+
+Um abraço,
+Equipe Padaria da Vila
+"""
+    sender_mail.async_send(user.username, content, "Bem-vindo(a) à Padaria da Vila!")
     return user
 
 

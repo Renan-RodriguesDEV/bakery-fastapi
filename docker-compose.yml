@@ -1,5 +1,5 @@
 # especificando a versão do schema docker-compose
-version: '3.9'
+# version: '3.9' (Não é necessário especificar a versão, mas é recomendado para garantir compatibilidade)
 
 # serviços definidos no docker-compose
 services:
@@ -17,6 +17,8 @@ services:
     environment:
       - FRONTEND_URL=http://frontend:3000 # URL interna (rede do compose)
       # - BACKEND_URL=http://backend:8000 # URL interna (rede do compose)
+    # se o container cair reinicia ele automaticamente
+    restart: unless-stopped
     
   frontend:
     build: ./frontend
@@ -29,3 +31,5 @@ services:
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
     depends_on:
       - backend # garantindo que o backend inicie antes do frontend
+    # se o container cair reinicia ele automaticamente
+    restart: unless-stopped

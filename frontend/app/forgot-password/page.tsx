@@ -195,7 +195,7 @@ export default function ForgotPasswordPage() {
                     Enviando...
                   </span>
                 ) : (
-                  "Enviar Email de Reset"
+                  "Enviar token de recuperação"
                 )}
               </button>
             </form>
