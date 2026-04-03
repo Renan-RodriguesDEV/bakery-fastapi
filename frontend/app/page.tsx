@@ -71,6 +71,13 @@ export default function HomePage() {
   // Funcionalidades para Administrador
   const adminFeatures = [
     {
+      icon: "📈",
+      title: "Dashboard de Vendas",
+      description: "Visualizar gráficos e estatísticas de arrecadação",
+      href: "/admin/dashboard",
+      color: "from-cyan-500 to-sky-600",
+    },
+    {
       icon: "📦",
       title: "Gerenciar Produtos",
       description: "Criar, atualizar e deletar produtos do catálogo",

@@ -52,6 +52,12 @@ export default function Sidebar() {
       color: "hover:text-purple-500 dark:hover:text-purple-400",
     },
     {
+      icon: "📈",
+      label: "Dashboard",
+      href: "/admin/dashboard",
+      color: "hover:text-cyan-500 dark:hover:text-cyan-400",
+    },
+    {
       icon: "📦",
       label: "Gerenciar Produtos",
       href: "/products",
@@ -64,7 +70,7 @@ export default function Sidebar() {
       color: "hover:text-red-500 dark:hover:text-red-400",
     },
     {
-      icon: "�",
+      icon: "🧾",
       label: "Gerenciar Vendas",
       href: "/admin/sales",
       color: "hover:text-orange-500 dark:hover:text-orange-400",
