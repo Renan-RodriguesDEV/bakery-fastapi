@@ -1,13 +1,8 @@
 "use client";
 
 import { useAuth } from "@/hooks/useAuth";
-import {
-  productsApi,
-  Product,
-  ProductCreate,
-  PRODUCT_CATEGORIES,
-  ProductCategory,
-} from "@/lib/api/products";
+import { productsApi, Product, ProductCreate } from "@/lib/api/products";
+import { categoriesApi, Category } from "@/lib/api/categories";
 import { cartApi } from "@/lib/api/cart";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -34,7 +29,7 @@ export default function ProductsPage() {
     name: "",
     price: 0,
     stock: 0,
-    category: "Pães",
+    category_id: 0,
     validity: new Date().toISOString().slice(0, 16),
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -59,8 +54,25 @@ export default function ProductsPage() {
   // Filtros
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [deletingCategoryId, setDeletingCategoryId] = useState<number | null>(
+    null,
+  );
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const loadCategories = useCallback(async () => {
+    try {
+      const data = await categoriesApi.getAllCategories();
+      setCategories(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("[PRODUCTS] Erro ao carregar categorias:", err);
+      setCategories([]);
+    }
+  }, []);
 
   const loadProductImages = useCallback(
     async (productList: Product[]) => {
@@ -129,6 +141,10 @@ export default function ProductsPage() {
     }
   }, [token, loadProducts]);
 
+  useEffect(() => {
+    loadCategories();
+  }, [loadCategories]);
+
   // Abrir modal para criar produto
   const openCreateModal = () => {
     setEditingProduct(null);
@@ -136,11 +152,13 @@ export default function ProductsPage() {
       name: "",
       price: 0,
       stock: 0,
-      category: "Pães",
+      category_id: categories[0]?.id || 0,
       validity: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
         .toISOString()
         .slice(0, 16),
     });
+    setShowCategoryManager(false);
+    setNewCategoryName("");
     setImageFile(null);
     setImagePreview(null);
     setShowModal(true);
@@ -153,12 +171,78 @@ export default function ProductsPage() {
       name: product.name,
       price: product.price,
       stock: product.stock,
-      category: product.category,
+      category_id: product.category?.id || 0,
       validity: product.validity.slice(0, 16),
     });
+    setShowCategoryManager(false);
+    setNewCategoryName("");
     setImageFile(null);
     setImagePreview(productImages[product.id] || null);
     setShowModal(true);
+  };
+
+  const handleCreateCategory = async () => {
+    if (!token) return;
+
+    const trimmedName = newCategoryName.trim();
+    if (!trimmedName) {
+      setError("Informe um nome para a categoria");
+      return;
+    }
+
+    setIsCreatingCategory(true);
+    setError("");
+
+    try {
+      const created = await categoriesApi.createCategory(
+        { name: trimmedName },
+        token,
+      );
+
+      setCategories((prev) =>
+        [...prev, created].sort((a, b) => a.name.localeCompare(b.name)),
+      );
+      setFormData((prev) => ({ ...prev, category_id: created.id }));
+      setNewCategoryName("");
+      setSuccess("Categoria criada com sucesso!");
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Erro ao criar categoria";
+      setError(errorMessage);
+    } finally {
+      setIsCreatingCategory(false);
+    }
+  };
+
+  const handleDeleteCategory = async (categoryId: number) => {
+    if (!token) return;
+
+    setDeletingCategoryId(categoryId);
+    setError("");
+
+    try {
+      await categoriesApi.deleteCategory(categoryId, token);
+
+      const remainingCategories = categories.filter(
+        (category) => category.id !== categoryId,
+      );
+      setCategories(remainingCategories);
+
+      if (formData.category_id === categoryId) {
+        setFormData((prev) => ({
+          ...prev,
+          category_id: remainingCategories[0]?.id || 0,
+        }));
+      }
+
+      setSuccess("Categoria excluida com sucesso!");
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Erro ao excluir categoria";
+      setError(errorMessage);
+    } finally {
+      setDeletingCategoryId(null);
+    }
   };
 
   // Abrir modal de detalhes
@@ -204,6 +288,11 @@ export default function ProductsPage() {
 
     if (formData.stock < 0) {
       setError("Estoque não pode ser negativo");
+      return;
+    }
+
+    if (!formData.category_id) {
+      setError("Categoria é obrigatória");
       return;
     }
 
@@ -320,7 +409,8 @@ export default function ProductsPage() {
       .toLowerCase()
       .includes(searchTerm.toLowerCase());
     const matchesCategory =
-      categoryFilter === "all" || product.category === categoryFilter;
+      categoryFilter === "all" ||
+      String(product.category?.id) === categoryFilter;
     return matchesSearch && matchesCategory;
   });
 
@@ -424,9 +514,9 @@ export default function ProductsPage() {
             className="px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
           >
             <option value="all">Todas as categorias</option>
-            {PRODUCT_CATEGORIES.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
               </option>
             ))}
           </select>
@@ -471,7 +561,7 @@ export default function ProductsPage() {
 
                   {/* Badge de categoria */}
                   <span className="absolute top-2 left-2 px-2 py-1 text-xs font-semibold bg-amber-500 text-white rounded-full">
-                    {product.category}
+                    {product.category?.name || "Sem categoria"}
                   </span>
 
                   {/* Badge de estoque */}
@@ -654,26 +744,92 @@ export default function ProductsPage() {
 
               {/* Categoria */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
-                  Categoria *
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200">
+                    Categoria *
+                  </label>
+                  {user.is_admin && (
+                    <button
+                      type="button"
+                      onClick={() => setShowCategoryManager((prev) => !prev)}
+                      className="px-3 py-1 text-xs font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-md hover:bg-blue-200 dark:hover:bg-blue-900/50 transition"
+                    >
+                      {showCategoryManager ? "Fechar" : "+ Categoria"}
+                    </button>
+                  )}
+                </div>
+
                 <select
-                  value={formData.category}
+                  value={formData.category_id}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
-                      category: e.target.value as ProductCategory,
+                      category_id: parseInt(e.target.value, 10),
                     })
                   }
                   className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
                   required
                 >
-                  {PRODUCT_CATEGORIES.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
+                  <option value={0} disabled>
+                    Selecione uma categoria
+                  </option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
                     </option>
                   ))}
                 </select>
+
+                {showCategoryManager && user.is_admin && (
+                  <div className="mt-3 p-3 rounded-lg border border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700/40 space-y-3">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={newCategoryName}
+                        onChange={(e) => setNewCategoryName(e.target.value)}
+                        placeholder="Nome da nova categoria"
+                        className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleCreateCategory}
+                        disabled={isCreatingCategory}
+                        className="px-3 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white text-xs sm:text-sm font-semibold rounded-lg transition"
+                      >
+                        {isCreatingCategory ? "Criando..." : "Criar"}
+                      </button>
+                    </div>
+
+                    <div className="max-h-40 overflow-y-auto space-y-2">
+                      {categories.length === 0 ? (
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Nenhuma categoria cadastrada.
+                        </p>
+                      ) : (
+                        categories.map((category) => (
+                          <div
+                            key={category.id}
+                            className="flex items-center justify-between gap-2 px-3 py-2 bg-white dark:bg-slate-800 rounded-md border border-gray-200 dark:border-slate-600"
+                          >
+                            <span className="text-sm text-gray-800 dark:text-gray-200">
+                              {category.name}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteCategory(category.id)}
+                              disabled={deletingCategoryId === category.id}
+                              className="px-2 py-1 text-xs font-semibold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-900/50 disabled:bg-gray-300 disabled:text-gray-600 transition"
+                            >
+                              {deletingCategoryId === category.id
+                                ? "..."
+                                : "Excluir"}
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Validade */}
@@ -775,7 +931,7 @@ export default function ProductsPage() {
 
             <div className="p-6">
               <span className="inline-block px-3 py-1 text-xs font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full mb-3">
-                {selectedProduct.category}
+                {selectedProduct.category?.name || "Sem categoria"}
               </span>
 
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">

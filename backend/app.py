@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from routes.auth import router as auth_router
 from routes.cart import router as cart_router
+from routes.categories import router as categories_router
 from routes.payments import router as payments_router
 from routes.products import router as products_router
 from routes.sales import router as sales_router
@@ -37,6 +38,7 @@ app.add_middleware(
 # incluindo rotas da aplicação
 app.include_router(auth_router)
 app.include_router(users_router)
+app.include_router(categories_router)
 app.include_router(products_router)
 app.include_router(sales_router)
 app.include_router(cart_router)

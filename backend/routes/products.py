@@ -2,13 +2,14 @@ import base64
 
 from auth.auth import get_current_user
 from db.connection import get_session
-from db.entities import Product, User
+from db.entities import Category, Product, User
 from exceptions.handle_exceptions import (
     exception_access_dained_for_user,
+    exception_category_not_found,
+    exception_image_not_found,
     exception_missing_content,
     exception_product_not_found,
     exception_user_not_found,
-    exception_image_not_found,
 )
 from fastapi import APIRouter, Depends, File, UploadFile, status
 from schemas.product import (
@@ -59,6 +60,12 @@ async def create(
     if not current_user.is_admin:
         raise exception_access_dained_for_user
 
+    category = (
+        session.query(Category).filter(Category.id == product.category_id).first()
+    )
+    if not category:
+        raise exception_category_not_found
+
     product_db = Product(**product.model_dump())
     session.add(product_db)
     session.commit()
@@ -82,6 +89,10 @@ async def update(
     if not product_db:
         raise exception_product_not_found
     product_data = product.model_dump()
+    category_id = product_data.get("category_id")
+    category = session.query(Category).filter(Category.id == category_id).first()
+    if not category:
+        raise exception_category_not_found
     for key, value in product_data.items():
         if not value:
             raise exception_missing_content
@@ -107,6 +118,10 @@ async def update_partial(
         raise exception_product_not_found
     product_data = product.model_dump(exclude_unset=True)
     for key, value in product_data.items():
+        if key == "category_id" and value:
+            category = session.query(Category).filter(Category.id == value).first()
+            if not category:
+                raise exception_category_not_found
         setattr(product_db, key, value)
     session.commit()
     session.refresh(product_db)

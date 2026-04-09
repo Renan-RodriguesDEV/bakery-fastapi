@@ -12,6 +12,9 @@ exception_user_not_found = HTTPException(
 exception_product_not_found = HTTPException(
     status.HTTP_404_NOT_FOUND, "Produto não encontrado"
 )
+exception_category_not_found = HTTPException(
+    status.HTTP_404_NOT_FOUND, "Categoria não encontrada"
+)
 exception_cart_not_found = HTTPException(
     status.HTTP_404_NOT_FOUND, "Carrinho não encontrado"
 )
@@ -31,9 +34,16 @@ exception_not_payment = HTTPException(
     status_code=status.HTTP_204_NO_CONTENT,
     detail="Não houve resposta no metodo de criação de pagamento",
 )
-exception_runnable = lambda e: HTTPException(
-    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
-)
-exception_payment_error = lambda e: Exception(
-    f"Erro ao criar preferência de pagamento: {e}"
-)
+
+exception_unauthorized_delete = HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Não é permitido deletar a categoria padrão",
+        )
+def exception_runnable(e):
+    return HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+    )
+
+
+def exception_payment_error(e):
+    return Exception(f"Erro ao criar preferência de pagamento: {e}")

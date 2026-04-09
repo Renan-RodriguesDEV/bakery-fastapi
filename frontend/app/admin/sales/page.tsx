@@ -29,7 +29,10 @@ interface Sale {
   product: {
     name: string;
     price: number;
-    category: string;
+    category: {
+      id: number;
+      name: string;
+    };
   };
   was_paid: boolean;
   created_at: string;
