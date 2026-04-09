@@ -43,6 +43,42 @@ export default function SalesPage() {
   const [marking, setMarking] = useState(false);
   const [paymentLinks, setPaymentLinks] = useState<Record<number, string>>({});
   const [loadingPayment, setLoadingPayment] = useState<Set<number>>(new Set());
+  const [showPickupModal, setShowPickupModal] = useState(false);
+  const [selectedSaleForPickup, setSelectedSaleForPickup] =
+    useState<Sale | null>(null);
+  const [loadingPickup, setLoadingPickup] = useState(false);
+
+  const handleRequestPickup = async (sale: Sale) => {
+    if (!token) return;
+
+    setLoadingPickup(true);
+    setError(null);
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/payments/i-go-get/${sale.id}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error("Erro ao solicitar retirada");
+      }
+
+      setSelectedSaleForPickup(sale);
+      setShowPickupModal(true);
+    } catch (err) {
+      console.error("Erro ao solicitar retirada:", err);
+      setError("Erro ao solicitar retirada. Tente novamente.");
+    } finally {
+      setLoadingPickup(false);
+    }
+  };
 
   const handleGeneratePaymentLink = async (saleId: number) => {
     if (!token) return;
@@ -50,6 +86,12 @@ export default function SalesPage() {
     try {
       setLoadingPayment((prev) => new Set(prev).add(saleId));
       setError(null);
+
+      const sale = sales.find((s) => s.id === saleId);
+      if (!sale) {
+        setError("Venda nao encontrada");
+        return;
+      }
 
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/payments/${saleId}`,
@@ -62,7 +104,7 @@ export default function SalesPage() {
           body: JSON.stringify({
             title: "Pagamento de Venda",
             quantity: 1,
-            unit_price: sortedSales.find((s) => s.id === saleId)?.value || 0,
+            unit_price: sale.value,
           }),
         },
       );
@@ -590,36 +632,46 @@ export default function SalesPage() {
                             )}
                             {!user?.is_admin && (
                               <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm whitespace-nowrap">
-                                {!sale.was_paid ? (
-                                  <div className="flex flex-col gap-2">
-                                    {!paymentLinks[sale.id] ? (
-                                      <button
-                                        onClick={() =>
-                                          handleGeneratePaymentLink(sale.id)
-                                        }
-                                        disabled={loadingPayment.has(sale.id)}
-                                        className="px-2 sm:px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded text-[10px] sm:text-xs font-medium transition whitespace-nowrap"
-                                      >
-                                        {loadingPayment.has(sale.id)
-                                          ? "Gerando..."
-                                          : "Gerar Link"}
-                                      </button>
-                                    ) : (
-                                      <a
-                                        href={paymentLinks[sale.id]}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="block px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-lg text-xs sm:text-sm font-semibold transition shadow-md hover:shadow-lg hover:scale-105 active:scale-95"
-                                      >
-                                        💳 Ir ao Checkout
-                                      </a>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <span className="px-2 sm:px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded text-[10px] sm:text-xs font-semibold">
-                                    ✓ Pago
-                                  </span>
-                                )}
+                                <div className="flex flex-row gap-2 items-center flex-wrap">
+                                  {!sale.was_paid && !paymentLinks[sale.id] ? (
+                                    <button
+                                      onClick={() =>
+                                        handleGeneratePaymentLink(sale.id)
+                                      }
+                                      disabled={loadingPayment.has(sale.id)}
+                                      className="px-2 sm:px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded text-[10px] sm:text-xs font-medium transition whitespace-nowrap"
+                                    >
+                                      {loadingPayment.has(sale.id)
+                                        ? "Gerando..."
+                                        : "Gerar Link"}
+                                    </button>
+                                  ) : null}
+
+                                  {!sale.was_paid && paymentLinks[sale.id] ? (
+                                    <a
+                                      href={paymentLinks[sale.id]}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="block px-3 sm:px-4 py-2 sm:py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-lg text-xs sm:text-sm font-semibold transition shadow-md hover:shadow-lg hover:scale-105 active:scale-95"
+                                    >
+                                      💳 Ir ao Checkout
+                                    </a>
+                                  ) : null}
+
+                                  <button
+                                    onClick={() => handleRequestPickup(sale)}
+                                    disabled={loadingPickup}
+                                    className="px-2 sm:px-3 py-1 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white rounded text-[10px] sm:text-xs font-medium transition whitespace-nowrap"
+                                  >
+                                    {loadingPickup ? "..." : "📦 Retirar"}
+                                  </button>
+
+                                  {sale.was_paid ? (
+                                    <span className="px-2 sm:px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded text-[10px] sm:text-xs font-semibold">
+                                      ✓ Pago
+                                    </span>
+                                  ) : null}
+                                </div>
                               </td>
                             )}
                           </tr>
@@ -695,6 +747,88 @@ export default function SalesPage() {
           </div>
         )}
       </main>
+
+      {showPickupModal && selectedSaleForPickup && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+            <div className="bg-gradient-to-r from-purple-600 to-fuchsia-700 px-6 py-8 text-white">
+              <div className="text-center">
+                <div className="text-5xl mb-3">✅</div>
+                <h2 className="text-2xl font-bold">Retirada Solicitada</h2>
+                <p className="text-purple-100 mt-2">
+                  O vendedor foi notificado por e-mail.
+                </p>
+              </div>
+            </div>
+
+            <div className="px-6 py-6 space-y-4">
+              <div className="bg-purple-50 dark:bg-slate-700/40 rounded-xl p-4 border border-purple-200 dark:border-slate-600">
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-3">
+                  Informacoes da venda
+                </h3>
+                <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                  <div className="flex justify-between gap-4">
+                    <span>Pedido:</span>
+                    <span className="font-semibold">
+                      #{selectedSaleForPickup.id}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <span>Produto:</span>
+                    <span className="font-semibold text-right">
+                      {selectedSaleForPickup.product.name}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <span>Quantidade:</span>
+                    <span className="font-semibold">
+                      {selectedSaleForPickup.count}x
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <span>Valor:</span>
+                    <span className="font-semibold text-green-600 dark:text-green-400">
+                      R$ {selectedSaleForPickup.value.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-700">
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
+                  Local de retirada
+                </h3>
+                <p className="text-sm text-gray-700 dark:text-gray-300">
+                  Dirija-se a loja fisica para retirar seu pedido e informe o
+                  numero da venda ao atendente.
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                  Horario sugerido: Segunda a Sexta, das 8h as 18h.
+                </p>
+              </div>
+
+              <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 border border-green-200 dark:border-green-700">
+                <p className="text-sm text-gray-700 dark:text-gray-300">
+                  ✓ Solicitacao enviada com sucesso. Em breve o vendedor entrara
+                  em contato, se necessario.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 dark:bg-slate-700/50 px-6 py-4">
+              <button
+                onClick={() => {
+                  setShowPickupModal(false);
+                  setSelectedSaleForPickup(null);
+                }}
+                className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

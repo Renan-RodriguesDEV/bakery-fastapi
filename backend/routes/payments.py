@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import RedirectResponse
 from logger import logger
 from schemas.payment import PaymentSchema
+from services.email import SenderMail
 from services.payment_manager import PaymentManager
 from sqlalchemy.orm import Session
 
@@ -86,3 +87,38 @@ def pending(request: Request):
         url=f"{os.getenv('FRONTEND_URL')}/sales",
         status_code=status.HTTP_307_TEMPORARY_REDIRECT,
     )
+
+
+@router.post("/i-go-get/{sale_id}", status_code=status.HTTP_200_OK)
+def i_go_get(sale_id: int, session: Session = Depends(get_session)):
+    sale = session.query(Sale).filter(Sale.id == sale_id).first()
+    if not sale:
+        return exception_sale_not_found
+    admins = session.query(User).filter(User.is_admin == True).all()
+    logger.info(
+        f"User {sale.user.name} is going to get the product {sale.product.name}"
+    )
+    sender_mail = SenderMail()
+    for admin in admins:
+        logger.info(f"Sending email to admin {admin.name} about the sale {sale.id}")
+        sender_mail.async_send(
+            admin.username,
+            f"""Olá {admin.name},
+
+O cliente {sale.user.name} solicitou a retirada do seguinte produto:
+
+Produto: {sale.product.name}
+Quantidade: {sale.count}
+Valor unitário: R$ {sale.product.price:.2f}
+Valor total: R$ {sale.value:.2f}
+
+Por favor, prepare o item para retirada.
+
+Em caso de dúvidas, fique à vontade para entrar em contato.
+
+Atenciosamente,
+Padaria da Vila
+            """,
+            "Notificação de retirada de produto",
+        )
+    return {"message": "Notificação enviada para os administradores."}

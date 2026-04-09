@@ -8,6 +8,13 @@ import {
   useCallback,
 } from "react";
 
+function generateNotificationId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
 export interface Notification {
   id: string;
   message: string;
@@ -23,7 +30,7 @@ interface NotificationContextType {
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(
-  undefined
+  undefined,
 );
 
 export function NotificationProvider({
@@ -52,7 +59,7 @@ export function NotificationProvider({
     // Função para buscar produtos com validade próxima/vencida
     // Pode ser implementada uma chamada à API aqui
     console.log(
-      "[WebSocket] Verificando produtos com validade próxima/vencida..."
+      "[WebSocket] Verificando produtos com validade próxima/vencida...",
     );
     const response = await fetch(`${urlAPI}/ws/check/validity`);
     if (response.ok) {
@@ -85,7 +92,7 @@ export function NotificationProvider({
       console.log("[WebSocket] Notificação recebida:", event.data);
 
       const notification: Notification = {
-        id: Date.now().toString(),
+        id: generateNotificationId(),
         message: event.data,
         timestamp: new Date(),
         read: false,
@@ -122,7 +129,7 @@ export function NotificationProvider({
       } catch (error) {
         console.error(
           "[WebSocket] Erro ao verificar status dos produtos:",
-          error
+          error,
         );
       }
     };
@@ -138,7 +145,7 @@ export function NotificationProvider({
 
   const markAsRead = useCallback((id: string) => {
     setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
     );
   }, []);
 
@@ -166,7 +173,7 @@ export function useNotifications() {
   const context = useContext(NotificationContext);
   if (!context) {
     throw new Error(
-      "useNotifications deve ser usado dentro de NotificationProvider"
+      "useNotifications deve ser usado dentro de NotificationProvider",
     );
   }
   return context;
