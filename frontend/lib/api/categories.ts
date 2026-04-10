@@ -14,8 +14,12 @@ export interface CategoryCreate {
 }
 
 export const categoriesApi = {
-  getAllCategories: async (): Promise<Category[]> => {
-    const response = await fetch(`${API_BASE_URL}/categories/all`);
+  getAllCategories: async (token: string): Promise<Category[]> => {
+    const response = await fetch(`${API_BASE_URL}/categories/all`,{
+      headers:{
+        Authorization:`Bearer ${token}`,
+      },
+    });
     if (!response.ok) {
       throw new Error("Erro ao buscar categorias");
     }
