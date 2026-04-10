@@ -14,13 +14,27 @@ router = APIRouter(prefix="/categories", tags=["categories"])
 
 
 @router.get("/all", status_code=status.HTTP_200_OK, response_model=list[CategorySchema])
-async def get_all(session: Session = Depends(get_session)):
+async def get_all(
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    if not current_user:
+        raise exception_access_dained
     return session.query(Category).all()
 
 
 @router.get("/{id}", status_code=status.HTTP_200_OK, response_model=CategorySchema)
-async def get(id: int, session: Session = Depends(get_session)):
-    return session.query(Category).filter(Category.id == id).first()
+async def get(
+    id: int,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    if not current_user:
+        raise exception_access_dained
+    category = session.query(Category).filter(Category.id == id).first()
+    if not category:
+        raise exception_category_not_found
+    return category
 
 
 @router.post(
