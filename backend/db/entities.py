@@ -51,6 +51,7 @@ class Product(Base):
     validity = Column(TIMESTAMP, nullable=False, server_default=func.now())
     image = Column(LargeBinary, nullable=True)
     created_at = Column(TIMESTAMP, nullable=False, server_default=func.now())
+    # chave estrangeira que referencia a tabela "categorias", ondelete="CASCADE" significa que quando uma categoria for excluída, todos os produtos relacionados a essa categoria também serão excluídos, nullable=False significa que o campo não pode ser nulo, ou seja, um produto deve obrigatoriamente pertencer a uma categoria.
     category_id = Column(
         ForeignKey("categorias.id", ondelete="CASCADE"), nullable=False
     )
@@ -58,6 +59,7 @@ class Product(Base):
     shopping_cart = relationship(
         "ShoppingCart", back_populates="product", cascade="all, delete-orphan"
     )
+    # Na tabela filha (Product) fica o atributo "category" e na tabela pai (Category) fica o atributo "product", back_populates é usado para criar a relação bidirecional entre as tabelas, não é usado o cascade no atributo "category" pois a relação é gerenciada pela tabela filha.
     category = relationship("Category", back_populates="product")
 
     def __init__(self, name, price, stock, category_id=None, validity=None, image=None):
@@ -75,6 +77,8 @@ class Category(Base):
     id = Column(Integer, primary_key=True, nullable=False, autoincrement=True)
     name = Column(String, nullable=False)
     created_at = Column(TIMESTAMP, nullable=False, server_default=func.now())
+    # Na tabela pai (Category) fica o atributo "product" e na tabela filha (Product) fica o atributo "category", back_populates é usado para criar a relação bidirecional entre as tabelas, cascade é usado para definir o comportamento de exclusão em cascata, ou seja, quando uma categoria for excluída, todos os produtos relacionados a essa categoria também serão excluídos.
+    # No pai não precisa do atributo "category_id" porque ele já tem o relacionamento com a tabela filha (Product) através do atributo "product", e no filho (Product) precisa do atributo "category_id" para criar a chave estrangeira que referencia a tabela pai (Category).
     product = relationship(
         "Product", back_populates="category", cascade="all, delete-orphan"
     )

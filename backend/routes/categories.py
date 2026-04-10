@@ -51,10 +51,11 @@ async def delete(
     if id == 1:
         raise exception_unauthorized_delete
     category = session.query(Category).filter(Category.id == id).first()
+    if not category:
+        raise exception_category_not_found
     products = session.query(Product).filter(Product.category_id == id).all()
     for product in products:
         product.category_id = 1
-    if not category:
-        raise exception_category_not_found
     session.delete(category)
     session.commit()
+    return {"message": "Categoria deletada com sucesso!"}
