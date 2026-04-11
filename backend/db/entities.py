@@ -102,7 +102,14 @@ class Sale(Base):
     product = relationship("Product", back_populates="sale")
 
     def __init__(
-        self, user_id, product_id, count, value=0.0, payment_id=None, was_paid=False
+        self,
+        user_id,
+        product_id,
+        count,
+        value=0.0,
+        payment_id=None,
+        was_paid=False,
+        created_at=None,
     ):
         self.user_id = user_id
         self.product_id = product_id
@@ -110,6 +117,7 @@ class Sale(Base):
         self.value = value
         self.payment_id = payment_id
         self.was_paid = was_paid
+        self.created_at = created_at
 
 
 class ShoppingCart(Base):
