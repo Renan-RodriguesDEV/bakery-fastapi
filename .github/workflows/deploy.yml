@@ -23,7 +23,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           # aqui é onde você coloca os comandos que serão executados no servidor remoto para fazer o deploy, nesse caso é um script simples que navega até a pasta do projeto, puxa as últimas mudanças do repositório e reinicia os containers do docker-compose
           script: |
-            cd /home/ubuntu/seu-repo
+            cd /home/ubuntu/bakery-fastapi
 
             git pull origin main
 
