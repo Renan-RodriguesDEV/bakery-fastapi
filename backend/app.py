@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
+from routes.agent import router as agent_router
 from routes.auth import router as auth_router
 from routes.cart import router as cart_router
 from routes.categories import router as categories_router
@@ -44,6 +45,7 @@ app.include_router(sales_router)
 app.include_router(cart_router)
 app.include_router(websocket_router)
 app.include_router(payments_router)
+app.include_router(agent_router)
 
 
 @app.get("/", status_code=status.HTTP_200_OK, tags=["health"])
