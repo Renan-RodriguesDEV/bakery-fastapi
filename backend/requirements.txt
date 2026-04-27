@@ -8,3 +8,7 @@ SQLAlchemy==2.0.39
 uvicorn[standard]==0.40.0
 psycopg2-binary
 mercadopago
+langchain
+langchain-core
+langchain-community
+langchain-google-genai
