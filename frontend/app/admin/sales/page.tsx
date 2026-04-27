@@ -58,6 +58,7 @@ export default function AdminSalesPage() {
     product_id: 0,
     count: 1,
     was_paid: false,
+    created_at: "",
   });
   const [isSaving, setIsSaving] = useState(false);
 
@@ -65,6 +66,8 @@ export default function AdminSalesPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [saleToDelete, setSaleToDelete] = useState<Sale | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
 
   // Filtros
   const [filterByUser, setFilterByUser] = useState<number | null>(null);
@@ -72,6 +75,12 @@ export default function AdminSalesPage() {
     "all" | "paid" | "pending"
   >("all");
   const [searchTerm, setSearchTerm] = useState("");
+
+  const getDefaultDateTimeValue = () => {
+    const now = new Date();
+    const timezoneOffset = now.getTimezoneOffset() * 60000;
+    return new Date(now.getTime() - timezoneOffset).toISOString().slice(0, 16);
+  };
 
   // Redirecionar se não é admin
   useEffect(() => {
@@ -99,10 +108,11 @@ export default function AdminSalesPage() {
       setUsers(Array.isArray(usersData) ? usersData : []);
 
       // Inicializar form
-      if (usersData.length > 0) {
+      const customersOnly = usersData.filter((u: User) => !u.is_admin);
+      if (customersOnly.length > 0) {
         setFormData((prev) => ({
           ...prev,
-          user_id: usersData[0].id,
+          user_id: customersOnly[0].id,
         }));
       }
       if (productsData.length > 0) {
@@ -129,12 +139,14 @@ export default function AdminSalesPage() {
 
   // Abrir modal para criar venda
   const openCreateModal = () => {
+    const customersOnly = users.filter((u) => !u.is_admin);
     setEditingSale(null);
     setFormData({
-      user_id: users.length > 0 ? users[0].id : 0,
+      user_id: customersOnly.length > 0 ? customersOnly[0].id : 0,
       product_id: products.length > 0 ? products[0].id : 0,
       count: 1,
       was_paid: false,
+      created_at: getDefaultDateTimeValue(),
     });
     setShowModal(true);
   };
@@ -147,6 +159,7 @@ export default function AdminSalesPage() {
       product_id: sale.product_id,
       count: sale.count,
       was_paid: sale.was_paid,
+      created_at: sale.created_at.slice(0, 16),
     });
     setShowModal(true);
   };
@@ -157,7 +170,7 @@ export default function AdminSalesPage() {
     if (!token) return;
 
     // Validar campos obrigatórios
-    if (!formData.user_id || !formData.product_id) {
+    if (!editingSale && (!formData.user_id || !formData.product_id)) {
       setError("Cliente e Produto são obrigatórios");
       return;
     }
@@ -173,31 +186,26 @@ export default function AdminSalesPage() {
 
     try {
       if (editingSale) {
-        // Atualizar venda (PUT) - atualizar todos os campos
+        // Atualizar venda (PATCH) com os campos aceitos pelo backend
         const updateData = {
-          user_id: formData.user_id,
-          product_id: formData.product_id,
           count: formData.count,
           was_paid: formData.was_paid,
         };
 
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/sales/update/${editingSale.id}`,
-          {
-            method: "PUT",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(updateData),
-          },
+        const updatedSale = await salesApi.updateSale(
+          editingSale.id,
+          updateData,
+          token,
         );
 
-        if (!response.ok) {
-          throw new Error("Erro ao atualizar venda");
+        if (updatedSale.error || updatedSale.detail) {
+          throw new Error(
+            updatedSale.detail ||
+              updatedSale.error ||
+              "Erro ao atualizar venda",
+          );
         }
 
-        const updatedSale = await response.json();
         setSales(sales.map((s) => (s.id === updatedSale.id ? updatedSale : s)));
         setSuccess("Venda atualizada com sucesso!");
       } else {
@@ -240,17 +248,9 @@ export default function AdminSalesPage() {
     setError("");
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/sales/delete/${saleToDelete.id}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
+      const response = await salesApi.deleteSale(saleToDelete.id, token);
 
-      if (!response.ok) {
+      if (response.error) {
         throw new Error("Erro ao deletar venda");
       }
 
@@ -265,6 +265,42 @@ export default function AdminSalesPage() {
       setError(errorMessage);
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const openDeleteAllModal = () => {
+    if (filteredSales.length === 0) return;
+    setShowDeleteAllModal(true);
+  };
+
+  const handleDeleteAll = async () => {
+    if (!token || filteredSales.length === 0) return;
+
+    setIsDeletingAll(true);
+    setError("");
+
+    try {
+      const saleIds = filteredSales.map((s) => s.id);
+      const results = await salesApi.deleteMultipleSales(saleIds, token);
+      const failed = results.filter((r) => !r.ok);
+
+      if (failed.length > 0) {
+        throw new Error(
+          `Falha ao deletar ${failed.length} de ${saleIds.length} vendas`,
+        );
+      }
+
+      setSales((prev) => prev.filter((s) => !saleIds.includes(s.id)));
+      setSuccess(`${saleIds.length} venda(s) deletada(s) com sucesso!`);
+      setShowDeleteAllModal(false);
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Erro ao deletar vendas";
+      console.error("Erro ao deletar vendas:", err);
+      setError(errorMessage);
+    } finally {
+      setIsDeletingAll(false);
     }
   };
 
@@ -407,6 +443,14 @@ export default function AdminSalesPage() {
           >
             + Venda
           </button>
+
+          <button
+            onClick={openDeleteAllModal}
+            disabled={filteredSales.length === 0 || isDeletingAll}
+            className="col-span-2 sm:col-span-1 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm sm:text-base rounded-lg font-medium transition-colors whitespace-nowrap"
+          >
+            Excluir Todas
+          </button>
         </div>
       </div>
 
@@ -517,26 +561,33 @@ export default function AdminSalesPage() {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Cliente *
                 </label>
-                <select
-                  value={formData.user_id}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      user_id: Number(e.target.value),
-                    })
-                  }
-                  required
-                  className="w-full px-4 py-2 bg-gray-100 dark:bg-slate-700/50 border border-gray-300 dark:border-slate-600/50 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:border-amber-500/50"
-                >
-                  <option value="">Selecione um cliente</option>
-                  {[...users]
-                    .sort((a, b) => a.name.localeCompare(b.name))
-                    .map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.name} ({u.username})
-                      </option>
-                    ))}
-                </select>
+                {editingSale ? (
+                  <div className="w-full px-4 py-2 bg-gray-100 dark:bg-slate-700/30 border border-gray-300 dark:border-slate-600/50 rounded-lg text-gray-900 dark:text-white">
+                    {editingSale.user.name} ({editingSale.user.username})
+                  </div>
+                ) : (
+                  <select
+                    value={formData.user_id}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        user_id: Number(e.target.value),
+                      })
+                    }
+                    required
+                    className="w-full px-4 py-2 bg-gray-100 dark:bg-slate-700/50 border border-gray-300 dark:border-slate-600/50 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:border-amber-500/50"
+                  >
+                    <option value="">Selecione um cliente</option>
+                    {[...users]
+                      .filter((u) => !u.is_admin)
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.name} ({u.username})
+                        </option>
+                      ))}
+                  </select>
+                )}
               </div>
 
               {/* Produto */}
@@ -544,26 +595,33 @@ export default function AdminSalesPage() {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Produto *
                 </label>
-                <select
-                  value={formData.product_id}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      product_id: Number(e.target.value),
-                    })
-                  }
-                  required
-                  className="w-full px-4 py-2 bg-gray-100 dark:bg-slate-700/50 border border-gray-300 dark:border-slate-600/50 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:border-amber-500/50"
-                >
-                  <option value="">Selecione um produto</option>
-                  {[...products]
-                    .sort((a, b) => a.name.localeCompare(b.name))
-                    .map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} - R$ {p.price.toFixed(2)}
-                      </option>
-                    ))}
-                </select>
+                {editingSale ? (
+                  <div className="w-full px-4 py-2 bg-gray-100 dark:bg-slate-700/30 border border-gray-300 dark:border-slate-600/50 rounded-lg text-gray-900 dark:text-white">
+                    {editingSale.product.name} - R${" "}
+                    {editingSale.product.price.toFixed(2)}
+                  </div>
+                ) : (
+                  <select
+                    value={formData.product_id}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        product_id: Number(e.target.value),
+                      })
+                    }
+                    required
+                    className="w-full px-4 py-2 bg-gray-100 dark:bg-slate-700/50 border border-gray-300 dark:border-slate-600/50 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:border-amber-500/50"
+                  >
+                    <option value="">Selecione um produto</option>
+                    {[...products]
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} - R$ {p.price.toFixed(2)}
+                        </option>
+                      ))}
+                  </select>
+                )}
               </div>
 
               {/* Quantidade */}
@@ -585,6 +643,27 @@ export default function AdminSalesPage() {
                   className="w-full px-4 py-2 bg-gray-100 dark:bg-slate-700/50 border border-gray-300 dark:border-slate-600/50 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:border-amber-500/50"
                 />
               </div>
+
+              {/* Data da venda */}
+              {!editingSale && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Data da venda *
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={formData.created_at}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        created_at: e.target.value,
+                      })
+                    }
+                    required
+                    className="w-full px-4 py-2 bg-gray-100 dark:bg-slate-700/50 border border-gray-300 dark:border-slate-600/50 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:border-amber-500/50"
+                  />
+                </div>
+              )}
 
               {/* Status de pagamento */}
               <div className="flex items-center">
@@ -653,6 +732,40 @@ export default function AdminSalesPage() {
                 className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
               >
                 {isDeleting ? "Deletando..." : "Deletar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de confirmação para deletar todas */}
+      {showDeleteAllModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-slate-800 border border-red-300 dark:border-red-700/50 rounded-xl shadow-2xl max-w-lg w-full p-6">
+            <h2 className="text-2xl font-bold text-red-700 dark:text-red-400 mb-4">
+              Atenção: exclusão em massa
+            </h2>
+            <p className="text-gray-700 dark:text-gray-300 mb-2">
+              Você está prestes a excluir{" "}
+              <span className="font-semibold">{filteredSales.length}</span>{" "}
+              venda(s) com base nos filtros atuais.
+            </p>
+            <p className="text-red-700 dark:text-red-400 font-medium mb-6">
+              Esta operação é arriscada e não pode ser desfeita.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteAllModal(false)}
+                className="flex-1 px-4 py-2 bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-900 dark:text-white rounded-lg font-medium transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteAll}
+                disabled={isDeletingAll}
+                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
+              >
+                {isDeletingAll ? "Excluindo..." : "Confirmar exclusão"}
               </button>
             </div>
           </div>

@@ -83,7 +83,7 @@ export default function UsersPage() {
   }, [token, user, loadUsers]);
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value, type } = e.target;
     setFormData((prev) => ({
@@ -110,6 +110,10 @@ export default function UsersPage() {
   };
 
   const openEditModal = (userToEdit: User) => {
+    if (userToEdit.is_admin) {
+      setError("Usuários admin não podem ser editados por esta tela.");
+      return;
+    }
     setEditingUser(userToEdit);
     setFormData({
       name: userToEdit.name,
@@ -168,7 +172,7 @@ export default function UsersPage() {
         const response = await usersApi.updateUser(
           editingUser.id,
           updateData,
-          token!
+          token!,
         );
 
         if (response.error) {
@@ -237,7 +241,7 @@ export default function UsersPage() {
   const filteredUsers = users.filter(
     (u) =>
       u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.username.toLowerCase().includes(searchTerm.toLowerCase())
+      u.username.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   if (authLoading) {
@@ -370,19 +374,27 @@ export default function UsersPage() {
                           </span>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-sm space-x-2 flex">
-                        <button
-                          onClick={() => openEditModal(u)}
-                          className="px-3 py-2 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-lg transition font-medium"
-                        >
-                          ✏️ Editar
-                        </button>
-                        <button
-                          onClick={() => handleDeleteClick(u)}
-                          className="px-3 py-2 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-300 rounded-lg transition font-medium"
-                        >
-                          🗑️ Deletar
-                        </button>
+                      <td className="px-6 py-4 text-sm">
+                        {u.is_admin ? (
+                          <span className="inline-flex px-3 py-2 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 rounded-lg font-medium">
+                            Protegido
+                          </span>
+                        ) : (
+                          <div className="space-x-2 flex">
+                            <button
+                              onClick={() => openEditModal(u)}
+                              className="px-3 py-2 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-lg transition font-medium"
+                            >
+                              ✏️ Editar
+                            </button>
+                            <button
+                              onClick={() => handleDeleteClick(u)}
+                              className="px-3 py-2 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-300 rounded-lg transition font-medium"
+                            >
+                              🗑️ Deletar
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -459,20 +471,22 @@ export default function UsersPage() {
                 />
               </div>
 
-              <div>
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="is_admin"
-                    checked={formData.is_admin}
-                    onChange={handleInputChange}
-                    className="w-4 h-4 cursor-pointer"
-                  />
-                  <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                    Administrador
-                  </span>
-                </label>
-              </div>
+              {!editingUser && (
+                <div>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="is_admin"
+                      checked={formData.is_admin}
+                      onChange={handleInputChange}
+                      className="w-4 h-4 cursor-pointer"
+                    />
+                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      Administrador
+                    </span>
+                  </label>
+                </div>
+              )}
 
               <div className="flex gap-3 pt-4">
                 <button

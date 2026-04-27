@@ -65,14 +65,15 @@ export default function ProductsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadCategories = useCallback(async () => {
+    if (!token) return;
     try {
-      const data = await categoriesApi.getAllCategories();
+      const data = await categoriesApi.getAllCategories(token);
       setCategories(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("[PRODUCTS] Erro ao carregar categorias:", err);
       setCategories([]);
     }
-  }, []);
+  }, [token]);
 
   const loadProductImages = useCallback(
     async (productList: Product[]) => {

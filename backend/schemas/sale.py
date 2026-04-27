@@ -25,6 +25,7 @@ class SaleCreateSchema(BaseModel):
     product_id: int
     count: int
     was_paid: bool = False
+    created_at: Optional[datetime.datetime] = None
 
 
 class SaleUpdateSchema(BaseModel):

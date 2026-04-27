@@ -15,7 +15,7 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      - FRONTEND_URL=http://frontend:3000 # URL interna (rede do compose)
+      - FRONTEND_URL=${FRONTEND_URL:-http://frontend:3000} # URL interna (rede do compose)
       # - BACKEND_URL=http://backend:8000 # URL interna (rede do compose)
     # se o container cair reinicia ele automaticamente
     restart: unless-stopped

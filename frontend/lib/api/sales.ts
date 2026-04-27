@@ -78,6 +78,7 @@ export const salesApi = {
       product_id: number;
       count: number;
       was_paid: boolean;
+      created_at?: string;
     },
     token: string
   ) => {
@@ -148,13 +149,43 @@ export const salesApi = {
         Authorization: `Bearer ${token}`,
       },
     });
-    return response.json();
+
+    if (!response.ok) {
+      return { error: 'Erro ao deletar venda' };
+    }
+
+    return { success: true };
   },
 
   /**
-   * Atualizar uma venda completa
+   * Deletar múltiplas vendas
+   * @param ids - IDs das vendas
+   * @param token - JWT access token
+   */
+  deleteMultipleSales: async (ids: number[], token: string) => {
+    const results = await Promise.all(
+      ids.map(async (id) => {
+        const response = await fetch(`${API_BASE_URL}/sales/delete/${id}`, {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        return {
+          id,
+          ok: response.ok,
+        };
+      })
+    );
+
+    return results;
+  },
+
+  /**
+   * Atualizar parcialmente uma venda
    * @param id - ID da venda
-   * @param data - { count, payment_id?, was_paid? }
+   * @param data - { count?, was_paid? }
    * @param token - JWT access token
    * @returns Dados da venda atualizada
    */
@@ -162,13 +193,12 @@ export const salesApi = {
     id: number,
     data: {
       count?: number;
-      payment_id?: string;
       was_paid?: boolean;
     },
     token: string
   ) => {
     const response = await fetch(`${API_BASE_URL}/sales/update/${id}`, {
-      method: 'PUT',
+      method: 'PATCH',
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',

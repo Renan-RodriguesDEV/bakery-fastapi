@@ -6,3 +6,5 @@ node_modules/
 *.sqlite3
 *.pyc
 alembic.ini
+deploy_bakery
+deploy_bakery.pub

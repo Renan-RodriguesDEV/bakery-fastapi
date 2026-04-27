@@ -1,0 +1,31 @@
+name: Deploy VPS
+
+# evento gatilhado quando houver um push para a branch main
+on:
+  push:
+    branches:
+      - main
+# definindo os jobs que serão executados nesse workflow, nesse caso só tem um job de deploy
+jobs:
+  deploy:
+    # definindo o ambiente onde o job vai rodar, nesse caso é a última versão do ubuntu disponível no github actions
+    runs-on: ubuntu-latest
+
+    # etapas do job, nesse caso tem apenas uma etapa de deploy via SSH
+    steps:
+      - name: Executar deploy via SSH
+        # usando a ação do appleboy para SSH, essa ação é bem simples de usar e permite executar comandos remotos via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        # configurando a ação com as variáveis de ambiente que estão armazenadas nos segredos do repositório (VPS_HOST, VPS_USER, SSH_PRIVATE_KEY) e o script que será executado no servidor remoto para fazer o deploy
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          # aqui é onde você coloca os comandos que serão executados no servidor remoto para fazer o deploy, nesse caso é um script simples que navega até a pasta do projeto, puxa as últimas mudanças do repositório e reinicia os containers do docker-compose
+          script: |
+            cd /home/ubuntu/bakery-fastapi
+
+            git pull origin main
+
+            docker-compose down
+            docker-compose up -d --build
