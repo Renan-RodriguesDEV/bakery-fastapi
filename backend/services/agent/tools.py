@@ -11,7 +11,7 @@ def find_products(query: str):
     session = next(get_session())
     result = session.execute(
         text(
-            "SELECT name, price, stock, validity, c.name as category FROM produtos p JOIN categorias c ON p.category_id = c.id"
+            "SELECT p.name, price, stock, validity, c.name as category FROM produtos p JOIN categorias c ON p.category_id = c.id"
         )
     )
     return [p._asdict() for p in result.fetchall()] if result else []

@@ -8,6 +8,7 @@ export { usersApi } from './users';
 export { productsApi } from './products';
 export { cartApi } from './cart';
 export { salesApi } from './sales';
+export { agentApi } from './agent';
 
 /**
  * Exemplo de uso:

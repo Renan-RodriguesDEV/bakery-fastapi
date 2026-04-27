@@ -5,6 +5,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Sidebar from "./components/Sidebar";
 import { Header } from "@/components/Header";
+import AIAssistant from "@/components/AIAssistant";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { usePathname } from "next/navigation";
 
@@ -48,6 +49,7 @@ export default function RootLayout({
           >
             {children}
           </main>
+          <AIAssistant />
         </NotificationProvider>
       </body>
     </html>
