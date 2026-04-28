@@ -1,68 +1,121 @@
+import json
+from typing import Optional
+
 from langchain.agents import create_agent
 from langchain.chat_models import init_chat_model
 from langchain_google_genai.embeddings import GoogleGenerativeAIEmbeddings
+from pydantic import BaseModel
+from services.agent.db_agent import create_memory, get_memory, save_in_memory
 from services.agent.tools import faq, find_products
 
-chat_memory = []
+agent, llm, embedding = None, None, None
+
+
+class AgentResponse(BaseModel):
+    answer: str
+    source: Optional[str] = None
+
+
+def extract_text(response):
+    try:
+        return response["messages"][-1].content
+    except:
+        return str(response)
+
+
+def safe_parse(response):
+    try:
+        raw = extract_text(response)
+        return AgentResponse(**json.loads(raw))
+    except:
+        return AgentResponse(answer=extract_text(response))
 
 
 def create_llm():
+    global llm
+    if llm:
+        return llm
     llm = init_chat_model("gemini-2.5-flash", model_provider="google_genai")
     return llm
 
 
 def create_agent_llm():
+    global agent
+    if agent:
+        return agent
     agent = create_agent(
         model="google_genai:gemini-2.5-flash",
-        system_prompt="Você é um assistente de IA, com foco apenas em padarias, responda apenas fatos ou perguntas relacionadas a padarias, caso a pergunta seja fora de padaria, responda que não tem conhecimento sobre o assunto. Use as ferramentas disponíveis para responder as perguntas, caso necessário.",
+        system_prompt="""
+Você é um assistente de padaria.
+
+    Regras:
+    - Use 'find_products' para produtos
+    - Use 'faq' para dúvidas comuns
+    - Nunca invente respostas
+    - Fora do domínio → diga que não sabe
+
+    Responda SEMPRE em JSON:
+    {
+      "answer": "resposta",
+      "source": "opcional"
+    }
+""",
         tools=[find_products, faq],
     )
     return agent
 
 
+agent = create_agent_llm()
+llm = create_llm()
+
+
 def create_embedding():
-    return GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
+    global embedding
+    if embedding:
+        return embedding
+    embedding = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
+    return embedding
 
 
-def _extract_response(message) -> str:
-    """Extrai o texto da resposta de forma simples e padronizada."""
-    return (
-        message.content
-        if isinstance(message.content, str)
-        else (
-            message.content[0].get("text", str(message.content))
-            if isinstance(message.content, list)
-            and message.content
-            and isinstance(message.content[0], dict)
-            else str(message.content)
-        )
-    )
+# embedding é um objeto que converte texto em vetores numéricos para facilitar a busca e comparação de informações.
+embedding = create_embedding()
+# criando uma memoria com o embedding, ou seja, um espaço onde os textos serão armazenados e organizados de acordo com suas semelhanças.
+vectorstore = create_memory(["sem nada inicialmente"], embedding=embedding)
 
 
 def ask_agent(p: str):
-    chat_memory_joined = "\n".join(
-        [f"{m['role']}: {m['content']}" for m in chat_memory]
-    )
-    response = create_agent_llm().invoke(
+    memory = get_memory(p, vectorstore) or "Sem contexto relevante encontrado."
+    prompt = f"""
+    Contexto:
+    {memory}
+
+    Pergunta:
+    {p}
+
+    Responda SOMENTE em JSON:
+    {{
+      "answer": "resposta",
+      "source": "opcional"
+    }}
+    """
+    response = agent.invoke(
         {
             "messages": [
                 {
                     "role": "user",
-                    "content": f"No contexto: {chat_memory_joined}\nResponda a seguinte pergunta: {p}",
+                    "content": prompt,
                 }
             ]
         }
     )
-    chat_memory.append({"role": "user", "content": p})
-
-    if response and "messages" in response and response["messages"]:
-        last_message = response["messages"][-1]
-        text = _extract_response(last_message)
-        chat_memory.append({"role": "assistant", "content": text})
-        return {"response": text, "success": True}
-
-    return {"response": "Nenhuma resposta recebida", "success": False}
+    answer_text = extract_text(response)
+    parsed = safe_parse(response)
+    save_in_memory([f"User:{p}\n: Assintent:{answer_text}"], vectorstore)
+    print("Resposta do agente:", response)
+    return parsed.model_dump()
 
 
 def ask_llm(pergunta: str):
-    return create_llm().invoke(pergunta).content
+    response = llm.invoke(pergunta)
+    print("Resposta do LLM:", response)
+    return response.content
