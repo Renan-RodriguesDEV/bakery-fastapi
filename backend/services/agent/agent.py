@@ -5,10 +5,11 @@ from langchain.agents import create_agent
 from langchain.chat_models import init_chat_model
 from langchain_google_genai.embeddings import GoogleGenerativeAIEmbeddings
 from pydantic import BaseModel
-from services.agent.db_agent import create_memory, get_memory, save_in_memory
+
+# from services.agent.db_agent import create_memory, get_memory, save_in_memory
 from services.agent.tools import faq, find_products
 
-agent, llm, embedding = None, None, None
+_agent, llm, embedding = None, None, None
 
 
 class AgentResponse(BaseModel):
@@ -16,19 +17,15 @@ class AgentResponse(BaseModel):
     source: Optional[str] = None
 
 
-def extract_text(response):
+def check_type_answer(res: dict):
     try:
-        return response["messages"][-1].content
-    except:
-        return str(response)
-
-
-def safe_parse(response):
-    try:
-        raw = extract_text(response)
-        return AgentResponse(**json.loads(raw))
-    except:
-        return AgentResponse(answer=extract_text(response))
+        if res.get("messages"):
+            answer = res.get("messages")[-1].content
+            return answer if not isinstance(answer, list) else answer[0].get("text")
+        return res.content
+    except Exception as e:
+        print("Erro ao processar resposta do agente:", e)
+        return "Desculpe, ocorreu um erro ao processar a resposta."
 
 
 def create_llm():
@@ -40,10 +37,11 @@ def create_llm():
 
 
 def create_agent_llm():
-    global agent
-    if agent:
-        return agent
-    agent = create_agent(
+    global _agent
+    tools = [find_products, faq]
+    if _agent:
+        return _agent
+    _agent = create_agent(
         model="google_genai:gemini-2.5-flash",
         system_prompt="""
 Você é um assistente de padaria.
@@ -54,15 +52,13 @@ Você é um assistente de padaria.
     - Nunca invente respostas
     - Fora do domínio → diga que não sabe
 
-    Responda SEMPRE em JSON:
-    {
-      "answer": "resposta",
-      "source": "opcional"
-    }
+    Responda SEMPRE em Markdown, mesmo que seja apenas texto simples.
+    Ex.: 2 + 2 = 4 (fonte se houver).
 """,
-        tools=[find_products, faq],
+        tools=tools,
+        debug=True,
     )
-    return agent
+    return _agent
 
 
 agent = create_agent_llm()
@@ -78,25 +74,22 @@ def create_embedding():
 
 
 # embedding é um objeto que converte texto em vetores numéricos para facilitar a busca e comparação de informações.
-embedding = create_embedding()
+# embedding = create_embedding()
 # criando uma memoria com o embedding, ou seja, um espaço onde os textos serão armazenados e organizados de acordo com suas semelhanças.
-vectorstore = create_memory(["sem nada inicialmente"], embedding=embedding)
+# vectorstore = create_memory(["sem nada inicialmente"], embedding=embedding)
 
 
-def ask_agent(p: str):
-    memory = get_memory(p, vectorstore) or "Sem contexto relevante encontrado."
+def ask_agent(pergunta: str):
+    # memory = get_memory(pergunta, vectorstore) or "Sem contexto relevante encontrado."
+    # Contexto:
+    # {memory}
     prompt = f"""
-    Contexto:
-    {memory}
 
     Pergunta:
-    {p}
+    {pergunta}
 
-    Responda SOMENTE em JSON:
-    {{
-      "answer": "resposta",
-      "source": "opcional"
-    }}
+    Responda SEMPRE em Markdown, mesmo que seja apenas texto simples.
+    Ex.: 2 + 2 = 4 (fonte se houver).
     """
     response = agent.invoke(
         {
@@ -108,14 +101,14 @@ def ask_agent(p: str):
             ]
         }
     )
-    answer_text = extract_text(response)
-    parsed = safe_parse(response)
-    save_in_memory([f"User:{p}\n: Assintent:{answer_text}"], vectorstore)
     print("Resposta do agente:", response)
-    return parsed.model_dump()
+    print("Tipo da resposta do LLM:", type(response))
+    checked_response = check_type_answer(response)
+    return checked_response
 
 
 def ask_llm(pergunta: str):
     response = llm.invoke(pergunta)
     print("Resposta do LLM:", response)
+    print("Tipo da resposta do LLM:", type(response))
     return response.content

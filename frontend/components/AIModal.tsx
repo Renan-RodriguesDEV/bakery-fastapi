@@ -56,12 +56,13 @@ export default function AIModal({ isOpen, onClose }: AIModalProps) {
 
     try {
       // Fazer requisição ao backend
-      const response = await agentApi.askAgent(input);
+      const response =
+        (await agentApi.askAgent(input)) || (await agentApi.askLlm(input));
 
       // Adicionar resposta do assistente
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: response.response || "Nenhuma resposta recebida",
+        text: response || "Nenhuma resposta recebida",
         sender: "assistant",
         timestamp: new Date(),
       };

@@ -20,15 +20,35 @@ export const agentApi = {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
+    const response = await fetch(`${API_BASE_URL}/agent/ask-agent?question=${encodeURIComponent(question)}`, {
+      method: 'POST',
+      headers,
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return response.text();
+  },
+  askLlm:async (question:string,token?:string)=>{
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch(`${API_BASE_URL}/agent/ask-llm?question=${encodeURIComponent(question)}`, {
       method: 'POST',
       headers,
     });
 
     if (!response.ok) {
-      throw new Error(`Erro na requisição: ${response.statusText}`);
+      return null;
     }
 
-    return response.json();
-  },
+    return response.text();
+  }
 };
