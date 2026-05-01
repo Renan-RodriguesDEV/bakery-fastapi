@@ -8,3 +8,4 @@ node_modules/
 alembic.ini
 deploy_bakery
 deploy_bakery.pub
+.venv/
